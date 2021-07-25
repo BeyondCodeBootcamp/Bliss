@@ -1,7 +1,12 @@
 # 🅱 Bliss
 
-A blog system as easy as gist, but with all the SEO and branding going to the
-right place.
+A frontend for you static site blog, to make blog posts as easy as Gist.
+
+# Demo
+
+<a href="https://bliss.coolaj86.com"><img width="800" alt="Bliss Demo" src="https://user-images.githubusercontent.com/122831/126893623-84a55dbb-68e4-4bbf-98a0-6f0f7e6011c7.png"></a>
+
+Try it out: https://bliss.coolaj86.com
 
 # Status
 
