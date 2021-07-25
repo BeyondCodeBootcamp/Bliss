@@ -29,6 +29,8 @@ Post._uuid = function () {
   return hex.join("");
 };
 
+Post._uuid_sep = " ";
+
 Post._toSlug = function (str) {
   return str
     .toLowerCase()
@@ -106,11 +108,10 @@ Post._store = function (_post) {
   _post.created = $('input[name="created"]').value;
   _post.content = $('textarea[name="content"]').value;
 
-  var sep = " ";
   var all = Post._all();
   if (!all.includes(_post.uuid)) {
     all.push(_post.uuid);
-    localStorage.setItem("all", all.join(sep).trim());
+    localStorage.setItem("all", all.join(Post._uuid_sep).trim());
   }
   localStorage.setItem(_post.uuid + ".title", _post.title);
   localStorage.setItem(_post.uuid + ".created", _post.created);
@@ -122,34 +123,88 @@ Post.save = function (ev) {
   ev.preventDefault();
   ev.stopPropagation();
 
-  Post._update();
+  Post._update(Post._current);
+};
+
+Post.undelete = function (ev) {
+  ev.preventDefault();
+  ev.stopPropagation();
+
+  Post._update(Post._current);
+  $(".js-undelete").hidden = true;
+  Post.list();
 };
 
 Post.load = function (ev) {
   ev.preventDefault();
   ev.stopPropagation();
 
-  console.log(ev);
+  var parent = ev.target.closest(".js-row");
+  var uuid = $('input[name="uuid"]', parent).value;
+  localStorage.setItem("current", uuid);
+  Post._current = Post._load(uuid);
+};
+
+Post.create = function (ev) {
+  ev.preventDefault();
+  ev.stopPropagation();
+
+  var uuid = Post._uuid();
+  localStorage.setItem("current", uuid);
+  Post._current = Post._load(uuid);
+  Post._store(Post._current);
+  Post.list();
+};
+
+Post.delete = function (ev) {
+  var q = "Are you sure you want to permanently delete this draft?";
 
   var parent = ev.target.closest(".js-row");
   var uuid = $('input[name="uuid"]', parent).value;
-  Post._load(uuid);
+
+  if (!window.confirm(q)) {
+    return;
+  }
+
+  if (!$(".js-undelete").hidden) {
+    // if we're deleting multiple things, we don't want to re-save on delete
+    Post.save(ev);
+  }
+  Post._delete(uuid);
+  if (uuid === Post._current.uuid) {
+    // load as a failsafe, just in case
+    localStorage.removeItem("current", uuid);
+    localStorage.setItem("current", Post._all()[0]);
+  } else {
+    Post._current = Post._load(uuid);
+  }
+  Post.list();
+  $(".js-undelete").hidden = false;
+};
+
+Post._delete = function (uuid) {
+  var all = Post._all();
+  all = all.filter(function (_uuid) {
+    return uuid !== _uuid;
+  });
+  localStorage.setItem("all", all.join(Post._uuid_sep).trim());
 };
 
 Post._load = function (uuid) {
-  Post._current = Post.restore(uuid);
-  var _post = Post._current;
+  var _post = Post.restore(uuid);
   $('input[name="title"]').value = _post.title;
   $('input[name="created"]').value = Post._toLocalDatetime(_post.created);
   $('textarea[name="content"]').value = _post.content;
+  $(".js-undelete").hidden = true;
 
   Post._preview(_post);
+  return _post;
 };
 
 (async function () {
   "use strict";
 
-  Post._update = function () {
+  Post._update = function (_post) {
     /*
      * Example:
       ---
@@ -163,14 +218,12 @@ Post._load = function (uuid) {
       ---
      */
 
-    Post._store(Post._current);
-    localStorage.setItem("current", Post._current.uuid);
-    Post._preview(Post._current);
+    Post._store(_post);
+    Post._preview(_post);
   };
 
   Post.list = function () {
     var items = Post._all().map(function (uuid) {
-      console.log("yo yo yo", uuid);
       var _post = Post.restore(uuid);
       var tmpl = listTmpl
         .replace(/ hidden/g, "")
@@ -193,14 +246,12 @@ Post._load = function (uuid) {
           .replace("{{updated}}", Post._toLocalDatetime(new date()))
       );
     }
-    console.log(items);
     $(".js-items").innerHTML = items.join("\n");
   };
 
   var listTmpl = $(".js-row").outerHTML;
   $(".js-row").remove();
-  console.log(listTmpl);
 
-  Post._load(localStorage.getItem("current"));
+  Post._current = Post._load(localStorage.getItem("current"));
   Post.list();
 })();

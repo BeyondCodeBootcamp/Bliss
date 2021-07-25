@@ -45,10 +45,8 @@
         </ul>
       </nav>
       <h1>A Blog System as Easy as Gist</h1>
-      <p>
-        <b>All killer, no filler</b>, just <em>visit the page</em>,
-        <b>add some Markdown</b> and <mark>you're done</mark>.
-      </p>
+      <b>All killer, no filler</b>, just <em>visit the page</em>,
+      <b>add some Markdown</b> and <mark>you're done</mark>.
     </header>
     <main>
       <section>
@@ -66,7 +64,6 @@
           -->
           <tbody class="js-items">
             <tr class="js-row">
-              <td><span hidden>{{created}}</span></td>
               <td>
                 <span hidden>{{title}}</span>
                 <input
@@ -76,15 +73,29 @@
                   class="js-uuid"
                 />
               </td>
+              <td><span hidden>{{created}}</span></td>
               <td><span hidden>{{updated}}</span></td>
-              <td><button onclick="Post.load(event)">Load</button></td>
+              <td>
+                <button onclick="Post.load(event)">Load Draft</button>
+                <a href="" onclick="Post.delete(event);"> 🗑 </a>
+              </td>
             </tr>
           </tbody>
         </table>
       </section>
+      <br />
       <section>
         <form style="width: 100%">
           <a onclick="Post.create(event);" style="float: right">New Post</a>
+          &nbsp; &nbsp;
+          <button
+            onclick="Post.undelete(event)"
+            class="js-undelete"
+            style="float: right"
+            hidden
+          >
+            Undelete
+          </button>
           <br />
           <label
             >Title:
