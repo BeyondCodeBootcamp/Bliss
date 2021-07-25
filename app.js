@@ -57,24 +57,24 @@ Post._toLocalDatetime = function (d = new Date()) {
   );
 };
 
-Post._preview = function (_post) {
-  _post._slug = Post._toSlug(_post.title);
-  _post._filename = _post._slug + ".md";
-  _post._frontMatter = [
+Post._preview = function (post) {
+  post._slug = Post._toSlug(post.title);
+  post._filename = post._slug + ".md";
+  post._frontMatter = [
     "---",
-    "title: " + _post.title,
-    "date: " + _post.created,
-    "updated: " + _post.created,
-    "uuid:" + _post.uuid,
+    "title: " + post.title,
+    "date: " + post.created,
+    "updated: " + post.created,
+    "uuid:" + post.uuid,
     "categories: []",
-    "permalink: /articles/" + _post._slug,
+    "permalink: /articles/" + post._slug,
     "---",
   ].join("\n");
 
-  var filestr = _post._frontMatter + "\n\n" + _post.content;
-  if (_post._filename && _post.content) {
+  var filestr = post._frontMatter + "\n\n" + post.content;
+  if (post._filename && post.content) {
     $(".js-preview-container").hidden = false;
-    $(".js-filename").innerText = _post._filename;
+    $(".js-filename").innerText = post._filename;
     $(".js-preview").innerText = filestr;
   } else {
     $(".js-preview-container").hidden = true;
@@ -82,18 +82,17 @@ Post._preview = function (_post) {
 };
 
 Post.restore = function (uuid) {
-  var _post = {};
+  var post = {};
 
-  _post.uuid = uuid || Post._uuid();
-  _post.title = localStorage.getItem(_post.uuid + ".title") || "";
-  _post.created =
-    localStorage.getItem(_post.uuid + ".created") ||
+  post.uuid = uuid || Post._uuid();
+  post.title = localStorage.getItem(post.uuid + ".title") || "";
+  post.created =
+    localStorage.getItem(post.uuid + ".created") ||
     Post._toLocalDatetime(new Date());
-  _post.updated =
-    localStorage.getItem(_post.uuid + ".updated") || _post.created;
-  _post.content = localStorage.getItem(_post.uuid + ".content") || "";
+  post.updated = localStorage.getItem(post.uuid + ".updated") || post.created;
+  post.content = localStorage.getItem(post.uuid + ".content") || "";
 
-  return _post;
+  return post;
 };
 
 Post._all = function () {
@@ -102,21 +101,21 @@ Post._all = function () {
     .filter(Boolean);
 };
 
-Post._store = function (_post) {
+Post._store = function (post) {
   // TODO debounce with max time
-  _post.title = $('input[name="title"]').value;
-  _post.created = $('input[name="created"]').value;
-  _post.content = $('textarea[name="content"]').value;
+  post.title = $('input[name="title"]').value;
+  post.created = $('input[name="created"]').value;
+  post.content = $('textarea[name="content"]').value;
 
   var all = Post._all();
-  if (!all.includes(_post.uuid)) {
-    all.push(_post.uuid);
+  if (!all.includes(post.uuid)) {
+    all.push(post.uuid);
     localStorage.setItem("all", all.join(Post._uuid_sep).trim());
   }
-  localStorage.setItem(_post.uuid + ".title", _post.title);
-  localStorage.setItem(_post.uuid + ".created", _post.created);
-  localStorage.setItem(_post.uuid + ".updated", _post.updated);
-  localStorage.setItem(_post.uuid + ".content", _post.content);
+  localStorage.setItem(post.uuid + ".title", post.title);
+  localStorage.setItem(post.uuid + ".created", post.created);
+  localStorage.setItem(post.uuid + ".updated", post.updated);
+  localStorage.setItem(post.uuid + ".content", post.content);
 };
 
 Post.save = function (ev) {
@@ -191,20 +190,20 @@ Post._delete = function (uuid) {
 };
 
 Post._load = function (uuid) {
-  var _post = Post.restore(uuid);
-  $('input[name="title"]').value = _post.title;
-  $('input[name="created"]').value = Post._toLocalDatetime(_post.created);
-  $('textarea[name="content"]').value = _post.content;
+  var post = Post.restore(uuid);
+  $('input[name="title"]').value = post.title;
+  $('input[name="created"]').value = Post._toLocalDatetime(post.created);
+  $('textarea[name="content"]').value = post.content;
   $(".js-undelete").hidden = true;
 
-  Post._preview(_post);
-  return _post;
+  Post._preview(post);
+  return post;
 };
 
 (async function () {
   "use strict";
 
-  Post._update = function (_post) {
+  Post._update = function (post) {
     /*
      * Example:
       ---
@@ -218,22 +217,22 @@ Post._load = function (uuid) {
       ---
      */
 
-    Post._store(_post);
-    Post._preview(_post);
+    Post._store(post);
+    Post._preview(post);
   };
 
   Post.list = function () {
     var items = Post._all().map(function (uuid) {
-      var _post = Post.restore(uuid);
+      var post = Post.restore(uuid);
       var tmpl = listTmpl
         .replace(/ hidden/g, "")
         .replace(
           "{{title}}",
-          _post.title.slice(0, 50).replace(/</g, "&lt;") || "<i>Untitled</i>"
+          post.title.slice(0, 50).replace(/</g, "&lt;") || "<i>Untitled</i>"
         )
-        .replace("{{uuid}}", _post.uuid)
-        .replace("{{created}}", _post.created)
-        .replace("{{updated}}", _post.created);
+        .replace("{{uuid}}", post.uuid)
+        .replace("{{created}}", post.created)
+        .replace("{{updated}}", post.created);
       return tmpl;
     });
     if (!items.length) {
