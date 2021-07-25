@@ -1,4 +1,4 @@
-# 🅱 Bliss
+# [🅱 Bliss](https://bliss.coolaj86.com)
 
 A frontend for you static site blog, to make blog posts as easy as Gist.
 
