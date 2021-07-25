@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="UTF-8" />
+
+    <title>Bliss - Blog as easily as creating a Gist</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/mvp.css" />
+    <meta name="description" content="Page description" />
+    <!--
+  <meta property="og:title" content="Unique page title - My Site">
+  <meta property="og:description" content="Page description">
+  <meta property="og:image" content="https://www.mywebsite.com/image.jpg">
+  <meta property="og:image:alt" content="Image description">
+  <meta property="og:locale" content="en_GB">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta property="og:url" content="https://www.mywebsite.com/page">
+  <link rel="canonical" href="https://www.mywebsite.com/page">
+
+  <link rel="icon" href="/favicon.ico">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/my.webmanifest">
+  <meta name="theme-color" content="#FF00FF">
+  -->
+    <script src="https://unpkg.com/ajquery@2.1/ajquery.min.js"></script>
+    <script src="https://unpkg.com/xtz@1.0/xtz.min.js"></script>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <a href="https://bliss.coolaj86.com/"
+          ><!-- img alt="Bliss" src="./img/logo.png" height="70"
+          /-->
+          <span style="font-size: 4em"> 🅱 </span>
+        </a>
+        <ul>
+          <li>Post</li>
+          <li>
+            <a href="https://github.com/coolaj86/bliss/" target="_blank"
+              >GitHub ↗</a
+            >
+          </li>
+        </ul>
+      </nav>
+      <h1>A Blog System as Easy as Gist</h1>
+      <p>
+        <b>All killer, no filler</b>, just <em>visit the page</em>,
+        <b>add some Markdown</b> and <mark>you're done</mark>.
+      </p>
+    </header>
+    <main>
+      <section>
+        <!-- TODO grid flex list thing??  -->
+        <table>
+          <!--
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Title</th>
+              <th>Last Update</th>
+              <th>Action</th>
+            </tr>
+          <thead>
+          -->
+          <tbody class="js-items">
+            <tr class="js-row">
+              <td><span hidden>{{created}}</span></td>
+              <td>
+                <span hidden>{{title}}</span>
+                <input
+                  name="uuid"
+                  type="hidden"
+                  value="{{uuid}}"
+                  class="js-uuid"
+                />
+              </td>
+              <td><span hidden>{{updated}}</span></td>
+              <td><button onclick="Post.load(event)">Load</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <section>
+        <form style="width: 100%">
+          <a onclick="Post.create(event);" style="float: right">New Post</a>
+          <br />
+          <label
+            >Title:
+            <input
+              style="width: 90%"
+              type="text"
+              name="title"
+              size="28"
+              onkeyup="
+                Post.save(event);
+                Post.list();
+              "
+              placeholder="Post Title"
+            />
+          </label>
+          <label
+            >Created:
+            <input
+              type="datetime-local"
+              name="created"
+              onchange="Post.save(event)"
+            />
+          </label>
+          <label
+            >Content:
+            <textarea
+              style="width: 90%"
+              name="content"
+              cols="28"
+              rows="30"
+              placeholder="start writing great content..."
+              onkeyup="Post.save(event)"
+            ></textarea>
+          </label>
+          <label
+            >Blog:
+            <select onchange="Post.save(event)">
+              <option
+                value="https://git.coolaj86.com/coolaj86/blog.coolaj86.com/_new/main/articles/{{slug}}.md?value={{content}}"
+                selected
+              >
+                coolaj86.com
+              </option>
+              <option
+                value="https://git.rootprojects.org/root/therootcompany.com/_new/main/content/blog/{{slug}}.md?value={{content}}"
+              >
+                Root
+              </option>
+              <option
+                value="https://github.com/BeyondCodeBootcamp/beyondcodebootcamp.com/new/main?filename=/articles/{{slug}}.md&value={{content}}"
+              >
+                Beyond Code
+              </option>
+              <option
+                value="https://github.com/GameCubeHomebrew/gchomebrew.com/new/main?filename=/articles/{{slug}}.md&value={{content}}"
+              >
+                GC Homebrew
+              </option>
+            </select>
+          </label>
+          <br />
+          <div style="max-width: 100%"></div>
+          <!-- TODO Save Version -->
+        </form>
+      </section>
+      <section class="js-preview-container" hidden>
+        <pre style="width: 100%">
+        <code language="text" class="js-filename" style="width: 50%">
+        </code>
+        <code language="markdown" class="js-preview">
+        </code>
+        </pre>
+      </section>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>
