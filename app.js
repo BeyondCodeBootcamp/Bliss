@@ -65,9 +65,9 @@ Post._preview = function (post) {
     "title: " + post.title,
     "date: " + post.created,
     "updated: " + post.created,
-    "uuid:" + post.uuid,
+    "uuid: " + post.uuid,
     "categories: []",
-    "permalink: /articles/" + post._slug,
+    "permalink: /articles/" + post._slug + "/",
     "---",
   ].join("\n");
 
