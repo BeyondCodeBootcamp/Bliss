@@ -26,6 +26,14 @@
     -->
     <script src="https://unpkg.com/ajquery@2.1/ajquery.min.js"></script>
     <script src="https://unpkg.com/xtz@1.0/xtz.min.js"></script>
+    <style>
+      fieldset {
+        border-style: none;
+      }
+      fieldset label {
+        display: inline-block;
+      }
+    </style>
   </head>
   <body>
     <header>
@@ -98,6 +106,17 @@
           </button>
           <br />
           <label
+            >Content:
+            <textarea
+              style="width: 90%"
+              name="content"
+              cols="28"
+              rows="30"
+              placeholder="start writing great content..."
+              onkeyup="Post.save(event)"
+            ></textarea>
+          </label>
+          <label
             >Title:
             <input
               style="width: 90%"
@@ -119,43 +138,37 @@
               onchange="Post.save(event)"
             />
           </label>
-          <label
-            >Content:
-            <textarea
-              style="width: 90%"
-              name="content"
-              cols="28"
-              rows="30"
-              placeholder="start writing great content..."
-              onkeyup="Post.save(event)"
-            ></textarea>
-          </label>
-          <label
-            >Blog:
-            <select onchange="Post.save(event)">
-              <option
-                value="https://git.coolaj86.com/coolaj86/blog.coolaj86.com/_new/main/articles/{{slug}}.md?value={{content}}"
-                selected
-              >
-                coolaj86.com
-              </option>
-              <option
-                value="https://git.rootprojects.org/root/therootcompany.com/_new/main/content/blog/{{slug}}.md?value={{content}}"
-              >
-                Root
-              </option>
-              <option
-                value="https://github.com/BeyondCodeBootcamp/beyondcodebootcamp.com/new/main?filename=/articles/{{slug}}.md&value={{content}}"
-              >
-                Beyond Code
-              </option>
-              <option
-                value="https://github.com/GameCubeHomebrew/gchomebrew.com/new/main?filename=/articles/{{slug}}.md&value={{content}}"
-              >
-                GC Homebrew
-              </option>
-            </select>
-          </label>
+          <fieldset>
+            <label
+              >Blog:
+              <select name="blog" onchange="Post.save(event)">
+                <option value="desi">Desi</option>
+                <option value="eon">EON (Hugo)</option>
+                <option value="bash">BashBlog</option>
+              </select>
+            </label>
+            <label
+              >Git:
+              <select name="githost" onchange="Post.save(event)">
+                <option value="gitea">Gitea</option>
+                <option value="github" selected>Github</option>
+              </select>
+            </label>
+            <label
+              >Repo:
+              <input
+                type="url"
+                name="repo"
+                onchange="Post.save(event)"
+                placeholder="https://github.com/EXAMPLE/PROJECT"
+              />
+            </label>
+            <label
+              ><a class="js-commit-url" target="_blank"
+                ><i>Create on <span class="js-githost"></span></i
+              ></a>
+            </label>
+          </fieldset>
           <br />
           <div style="max-width: 100%"></div>
           <!-- TODO Save Version -->
@@ -166,6 +179,9 @@
         <code language="text" class="js-filename" style="width: 50%">
         </code>
         <code language="markdown" class="js-preview">
+        </code>
+[Debug Info] Raw URL:
+        <code language="text" class="js-raw-url">
         </code>
         </pre>
       </section>

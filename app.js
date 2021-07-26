@@ -98,21 +98,37 @@ Post._format = function (_key, val, _system) {
 };
 
 Post._preview = function (post) {
+  var systems = {
+    desi: [
+      "---",
+      'title: "{{title}}"',
+      'description: "CHANGE ME !!!!!!"',
+      'timezone: "{{timezone}}"',
+      'date: "{{created}}"',
+      'updated: "{{updated}}"',
+      "uuid: {{uuid}}",
+      "categories:",
+      "  - CHANGE_ME_______________",
+      "permalink: /articles/{{slug}}/",
+      "---",
+    ],
+    eon: [
+      "---",
+      'title: "{{title}}"',
+      'description: "CHANGE ME !!!!!!"',
+      'timezone: "{{timezone}}"',
+      'date: "{{created}}"',
+      'updated: "{{updated}}"',
+      "uuid: {{uuid}}",
+      "categories:",
+      "  - CHANGE_ME_______________",
+      "---",
+    ],
+    bash: [],
+  };
   post._slug = Post._toSlug(post.title);
   post._filename = post._slug + ".md";
-  post._template = [
-    "---",
-    'title: "{{title}}"',
-    'description: "CHANGE ME !!!!!!"',
-    'timezone: "{{timezone}}"',
-    'date: "{{created}}"',
-    'updated: "{{updated}}"',
-    "uuid: {{uuid}}",
-    "categories:",
-    "  - CHANGE_ME_______________",
-    "permalink: /articles/{{slug}}/",
-    "---",
-  ].join("\n");
+  post._template = (systems[post._blog] || systems.eon).join("\n");
 
   var created = Post._format("created", post.created, post._system);
   var updated = Post._format("updated", post.updated, post._system);
@@ -134,7 +150,12 @@ Post._preview = function (post) {
     .replace(/"{{slug}}"/g, JSON.stringify(post._slug))
     .replace(/{{slug}}/g, post._slug);
 
-  var filestr = post._frontMatter + "\n\n" + post.content;
+  var filestr;
+  if (post._frontMatter.trim()) {
+    filestr = post._frontMatter + "\n\n" + post.content;
+  } else {
+    filestr = post.content;
+  }
   if (post._filename && post.content) {
     $(".js-preview-container").hidden = false;
     $(".js-filename").innerText = post._filename;
@@ -142,24 +163,120 @@ Post._preview = function (post) {
   } else {
     $(".js-preview-container").hidden = true;
   }
+
+  $("span.js-githost").innerText = $(
+    'select[name="githost"] option:checked'
+  ).innerText;
+  // ex: https://github.com/beyondcodebootcamp/beyondcodebootcamp.com/
+  $("a.js-commit-url").href = post._repo.replace(/\/$/, "");
+
+  var pathname = "";
+  switch (post._blog) {
+    case "desi":
+      pathname = "/posts";
+      break;
+    case "eon":
+      pathname = "/content/blog";
+      break;
+    case "bash":
+      pathname = "/articles";
+      break;
+    default:
+      // TODO log error
+      console.warn(
+        "Warning: using a default post._blog by accident",
+        post._blog
+      );
+      pathname = "/articles";
+  }
+  pathname = encodeURI(pathname);
+
+  var content = encodeURIComponent(filestr);
+  var commitPath;
+  // TODO branch name (default main or master)
+  switch (post._githost) {
+    case "gitea":
+      // TODO example url
+      $("a.js-commit-url").href +=
+        // TODO "/_new/main?filename=" +
+        "/_new/main" +
+        pathname +
+        "/" +
+        // TODO filename?
+        post._slug +
+        ".md?value=" +
+        content;
+      break;
+    case "github":
+      // TODO example url
+      $("a.js-commit-url").href +=
+        "/new/main?filename=" +
+        pathname +
+        "/" +
+        // TODO filename?
+        post._slug +
+        ".md&value=" +
+        content;
+      break;
+    default:
+      // TODO log error
+      console.warn(
+        "Warning: using a default post._blog by accident",
+        post._blog
+      );
+      $("a.js-commit-url").href +=
+        "/new/main?filename=" +
+        pathname +
+        "/" +
+        // TODO filename?
+        post._slug +
+        ".md&value=" +
+        content;
+  }
+
+  $("code.js-raw-url").innerText = $("a.js-commit-url").href;
 };
 
 Post.restore = function (uuid) {
-  var post = {};
-
-  // TODO
-  //  post.{{uuid}}.meta = { title, created, updated };
-  //  post.{{uuid}}.data = "content";
+  var post = JSON.parse(localStorage.getItem("post." + uuid + ".meta") || "{}");
   post.uuid = uuid || Post._uuid();
-  post.title = localStorage.getItem(post.uuid + ".title") || "";
-  post.timezone =
-    localStorage.getItem(post.uuid + ".timezone") ||
-    new Intl.DateTimeFormat().resolvedOptions().timeZone;
-  post.created =
-    localStorage.getItem(post.uuid + ".created") ||
-    XTZ.toTimeZone(new Date(), post.timezone).toISOString();
-  post.updated = localStorage.getItem(post.uuid + ".updated") || post.created;
-  post.content = localStorage.getItem(post.uuid + ".content") || "";
+
+  if (!post._repo) {
+    post._repo = "";
+  }
+
+  if (!post.title) {
+    post.title =
+      // TODO deprecate
+      localStorage.getItem(post.uuid + ".title") || "";
+  }
+
+  if (!post.timezone) {
+    post.timezone =
+      // TODO deprecate
+      localStorage.getItem(post.uuid + ".timezone") ||
+      new Intl.DateTimeFormat().resolvedOptions().timeZone;
+  }
+
+  if (!post.created) {
+    post.created =
+      // TODO deprecate
+      localStorage.getItem(post.uuid + ".created") ||
+      XTZ.toTimeZone(new Date(), post.timezone).toISOString();
+  }
+
+  if (!post.updated) {
+    post.updated =
+      // TODO deprecate
+      localStorage.getItem(post.uuid + ".updated") || post.created;
+  }
+
+  // TODO _blog, _githost, _repo
+
+  post.content =
+    localStorage.getItem("post." + post.uuid + ".data") ||
+    localStorage.getItem(post.uuid + ".content") ||
+    "";
 
   return post;
 };
@@ -174,6 +291,9 @@ Post._store = function (post) {
   // TODO debounce with max time
   var timezone = new Intl.DateTimeFormat().resolvedOptions().timeZone;
   post.timezone = post.timezone || timezone;
+  post._blog = $('select[name="blog"]').value || "eon";
+  post._githost = $('select[name="githost"]').value;
+  post._repo = $('input[name="repo"]').value || "";
   post.title = $('input[name="title"]').value;
   // 2021-07-01T13:59:59 => 2021-07-01T13:59:59-0600
   post.created = XTZ.toUTC(
@@ -188,10 +308,27 @@ Post._store = function (post) {
     all.push(post.uuid);
     localStorage.setItem("all", all.join(Post._uuid_sep).trim());
   }
+  // TODO deprecate
   localStorage.setItem(post.uuid + ".title", post.title);
   localStorage.setItem(post.uuid + ".created", post.created);
   localStorage.setItem(post.uuid + ".updated", post.updated);
   localStorage.setItem(post.uuid + ".content", post.content);
+
+  localStorage.setItem(
+    "post." + post.uuid + ".meta",
+    JSON.stringify({
+      title: post.title,
+      uuid: post.uuid,
+      _slug: post._slug,
+      created: post.created,
+      updated: post.updated,
+      timezone: post.timezone,
+      _blog: post._blog,
+      _githost: post._githost,
+      _repo: post._repo,
+    })
+  );
+  localStorage.setItem("post." + post.uuid + ".data", post.content);
 };
 
 Post.save = function (ev) {
@@ -269,6 +406,13 @@ Post._load = function (uuid) {
   var post = Post.restore(uuid);
   $('input[name="title"]').value = post.title;
   $('input[name="created"]').value = Post._toInputDatetimeLocal(post.created);
+  if (post._githost) {
+    $('select[name="githost"]').value = post._githost;
+  }
+  if (post._blog) {
+    $('select[name="blog"]').value = post._blog;
+  }
+  $('input[name="repo"]').value = post._repo;
   $('textarea[name="content"]').value = post.content;
   $(".js-undelete").hidden = true;
 
