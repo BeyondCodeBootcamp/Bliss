@@ -13,7 +13,7 @@ Try it out: https://bliss.coolaj86.com
 I've made this public because I'm live-streaming as I create it, not because I
 think it's at high levels of awesomeness.
 
-<https://www.youtube.com/watch?v=YRe_ci8tMms>
+<https://www.youtube.com/playlist?list=PLxki0D-ilnqZcb8UIdivo70ttUGgC__LD>
 
 That said, it is already useful for me personally.
 
