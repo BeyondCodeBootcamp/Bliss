@@ -1,3 +1,8 @@
+"use strict";
+
+var XTZ = window.XTZ;
+var $ = window.$;
+var $$ = window.$$;
 var Post = {};
 
 // TODO sync version using String.fromCharCode()?
@@ -41,7 +46,23 @@ Post._toSlug = function (str) {
     .trim();
 };
 
-Post._toLocalDatetime = function (d = new Date()) {
+Post._toInputDatetimeLocal = function (
+  d = new Date(),
+  tz = new Intl.DateTimeFormat().resolvedOptions().timeZone
+) {
+  // TODO
+  // It's quite reasonable that a person may create the post
+  // in an Eastern state on New York time and later edit the
+  // same post in a Western state on Mountain Time.
+  //
+  // How to we prevent the time from being shifted accidentally?
+  //
+  // ditto for updated at
+  /*
+  if ("string" === typeof d) {
+    return d.replace(/([+-]\d{4}|Z)$/, '');
+  }
+  */
   d = new Date(d);
   return (
     [
@@ -57,19 +78,61 @@ Post._toLocalDatetime = function (d = new Date()) {
   );
 };
 
+Post._format = function (_key, val, _system) {
+  // 2021-07-01T13:59:59-0600
+  // => 2021-07-01 1:59:59 pm
+  var parts = val.split("T");
+  var date = parts[0];
+  var time = parts[1];
+  var times = time.replace(/([-+]\d{4}|Z)$/g, "").split(":");
+  var hour = parseInt(times[0], 10) || 0;
+  var meridian = "am";
+  if (hour >= 12) {
+    hour -= 12;
+    meridian = "pm";
+    times[0] = hour;
+  }
+  times[2] = "00";
+  // 2021-07-01 + ' ' + 1:59:59 + ' ' +  pm
+  return date + " " + times.join(":") + " " + meridian;
+};
+
 Post._preview = function (post) {
   post._slug = Post._toSlug(post.title);
   post._filename = post._slug + ".md";
-  post._frontMatter = [
+  post._template = [
     "---",
-    "title: " + post.title,
-    "date: " + post.created,
-    "updated: " + post.created,
-    "uuid: " + post.uuid,
-    "categories: []",
-    "permalink: /articles/" + post._slug + "/",
+    'title: "{{title}}"',
+    'description: "CHANGE ME !!!!!!"',
+    'timezone: "{{timezone}}"',
+    'date: "{{created}}"',
+    'updated: "{{updated}}"',
+    "uuid: {{uuid}}",
+    "categories:",
+    "  - CHANGE_ME_______________",
+    "permalink: /articles/{{slug}}/",
     "---",
   ].join("\n");
+
+  var created = Post._format("created", post.created, post._system);
+  var updated = Post._format("updated", post.updated, post._system);
+  post._frontMatter = post._template
+    // TODO loop to make look nicer?
+    // ['title', 'timezone', 'created', 'updated', ... ]
+    // str = str.replace(new RegExp('{{'+key+'}}', 'g'), val)
+    // str = str.replace(new RegExp('"{{'+key+'}}"', 'g'), val)
+    .replace(/"{{title}}"/g, JSON.stringify(post.title))
+    .replace(/{{title}}/g, post.title)
+    .replace(/"{{timezone}}"/g, JSON.stringify(post.timezone))
+    .replace(/{{timezone}}/g, post.timezone)
+    .replace(/"{{created}}"/g, JSON.stringify(created))
+    .replace(/{{created}}/g, created)
+    .replace(/"{{updated}}"/g, JSON.stringify(updated))
+    .replace(/{{updated}}/g, updated)
+    .replace(/"{{uuid}}"/g, JSON.stringify(post.uuid))
+    .replace(/{{uuid}}/g, post.uuid)
+    .replace(/"{{slug}}"/g, JSON.stringify(post._slug))
+    .replace(/{{slug}}/g, post._slug);
 
   var filestr = post._frontMatter + "\n\n" + post.content;
   if (post._filename && post.content) {
@@ -84,11 +147,17 @@ Post._preview = function (post) {
 Post.restore = function (uuid) {
   var post = {};
 
+  // TODO
+  //  post.{{uuid}}.meta = { title, created, updated };
+  //  post.{{uuid}}.data = "content";
   post.uuid = uuid || Post._uuid();
   post.title = localStorage.getItem(post.uuid + ".title") || "";
+  post.timezone =
+    localStorage.getItem(post.uuid + ".timezone") ||
+    new Intl.DateTimeFormat().resolvedOptions().timeZone;
   post.created =
     localStorage.getItem(post.uuid + ".created") ||
-    Post._toLocalDatetime(new Date());
+    XTZ.toTimeZone(new Date(), post.timezone).toISOString();
   post.updated = localStorage.getItem(post.uuid + ".updated") || post.created;
   post.content = localStorage.getItem(post.uuid + ".content") || "";
 
@@ -103,8 +172,15 @@ Post._all = function () {
 
 Post._store = function (post) {
   // TODO debounce with max time
+  var timezone = new Intl.DateTimeFormat().resolvedOptions().timeZone;
+  post.timezone = post.timezone || timezone;
   post.title = $('input[name="title"]').value;
-  post.created = $('input[name="created"]').value;
+  // 2021-07-01T13:59:59 => 2021-07-01T13:59:59-0600
+  post.created = XTZ.toUTC(
+    $('input[name="created"]').value,
+    timezone
+  ).toISOString();
+  post.updated = post.updated || post.created;
   post.content = $('textarea[name="content"]').value;
 
   var all = Post._all();
@@ -192,7 +268,7 @@ Post._delete = function (uuid) {
 Post._load = function (uuid) {
   var post = Post.restore(uuid);
   $('input[name="title"]').value = post.title;
-  $('input[name="created"]').value = Post._toLocalDatetime(post.created);
+  $('input[name="created"]').value = Post._toInputDatetimeLocal(post.created);
   $('textarea[name="content"]').value = post.content;
   $(".js-undelete").hidden = true;
 
@@ -231,8 +307,14 @@ Post._load = function (uuid) {
           post.title.slice(0, 50).replace(/</g, "&lt;") || "<i>Untitled</i>"
         )
         .replace("{{uuid}}", post.uuid)
-        .replace("{{created}}", post.created)
-        .replace("{{updated}}", post.created);
+        .replace(
+          "{{created}}",
+          "🗓" + Post._toInputDatetimeLocal(post.created).replace(/T/g, " ⏰")
+        )
+        .replace(
+          "{{updated}}",
+          "🗓" + Post._toInputDatetimeLocal(post.updated).replace(/T/g, " ⏰")
+        );
       return tmpl;
     });
     if (!items.length) {
@@ -241,8 +323,14 @@ Post._load = function (uuid) {
           .replace(/ hidden/g, "")
           .replace("{{title}}", "<i>Untitled</i>")
           .replace("{{uuid}}", "")
-          .replace("{{created}}", Post._toLocalDatetime(new date()))
-          .replace("{{updated}}", Post._toLocalDatetime(new date()))
+          .replace(
+            "{{created}}",
+            "🗓" + Post._toInputDatetimeLocal(new Date()).replace(/T/g, " ⏰")
+          )
+          .replace(
+            "{{updated}}",
+            "🗓" + Post._toInputDatetimeLocal(new Date()).replace(/T/g, " ⏰")
+          )
       );
     }
     $(".js-items").innerHTML = items.join("\n");
