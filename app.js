@@ -124,7 +124,7 @@ Post._preview = function (post) {
       "  - CHANGE_ME_______________",
       "---",
     ],
-    bash: [],
+    bash: ["{{title}}"],
   };
   post._slug = Post._toSlug(post.title);
   post._filename = post._slug + ".md";
@@ -257,12 +257,6 @@ Post.restore = function (uuid) {
     post._gitbranch = "main";
   }
 
-  if (!post.title) {
-    post.title =
-      // TODO deprecate
-      localStorage.getItem(post.uuid + ".title") || "";
-  }
-
   if (!post.timezone) {
     post.timezone =
       // TODO deprecate
@@ -290,6 +284,12 @@ Post.restore = function (uuid) {
     localStorage.getItem(post.uuid + ".content") ||
     "";
 
+  if (!post.title) {
+    post.title =
+      // TODO deprecate
+      localStorage.getItem(post.uuid + ".title") || "";
+  }
+
   return post;
 };
 
@@ -297,6 +297,15 @@ Post._all = function () {
   return (localStorage.getItem("all") || "")
     .split(/[\s,;:|]+/g)
     .filter(Boolean);
+};
+
+Post._parseTitle = function (text) {
+  // split on newlines and grab the first as title
+  var title = text.split(/[\r\n]/g)[0];
+  if (title.includes("#")) {
+    title = title.split("#").slice(1).join("#").trim();
+  }
+  return title;
 };
 
 Post._store = function (post) {
@@ -307,14 +316,21 @@ Post._store = function (post) {
   post._githost = $('select[name="githost"]').value;
   post._gitbranch = $('input[name="gitbranch"]').value || "main";
   post._repo = $('input[name="repo"]').value || "";
-  post.title = $('input[name="title"]').value;
+  //post.title = $('input[name="title"]').value;
   // 2021-07-01T13:59:59 => 2021-07-01T13:59:59-0600
   post.created = XTZ.toUTC(
     $('input[name="created"]').value,
     timezone
   ).toISOString();
   post.updated = post.updated || post.created;
-  post.content = $('textarea[name="content"]').value;
+  var text = $('textarea[name="content"]').value;
+  post.title = Post._parseTitle(text);
+  // skip the first
+  post.content = text
+    .split(/[\r\n]/g)
+    .slice(1)
+    .join("\n")
+    .trim();
 
   var all = Post._all();
   if (!all.includes(post.uuid)) {
@@ -418,7 +434,7 @@ Post._delete = function (uuid) {
 
 Post._load = function (uuid) {
   var post = Post.restore(uuid);
-  $('input[name="title"]').value = post.title;
+  //$('input[name="title"]').value = post.title;
   $('input[name="created"]').value = Post._toInputDatetimeLocal(post.created);
   if (post._githost) {
     $('select[name="githost"]').value = post._githost;
@@ -430,7 +446,12 @@ Post._load = function (uuid) {
     $('select[name="blog"]').value = post._blog;
   }
   $('input[name="repo"]').value = post._repo;
-  $('textarea[name="content"]').value = post.content;
+  if (post.title || post.content) {
+    $('textarea[name="content"]').value =
+      "# " + (post.title || "Untitled") + "\n\n" + post.content;
+  } else {
+    $('textarea[name="content"]').value = "";
+  }
   $(".js-undelete").hidden = true;
 
   Post._preview(post);
