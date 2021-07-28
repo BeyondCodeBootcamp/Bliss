@@ -61,20 +61,20 @@
       <section>
         <!-- TODO grid flex list thing??  -->
         <table>
-          <!--
           <thead>
             <tr>
-              <th>Date</th>
+              <th>Created</th>
               <th>Title</th>
+              <th></th>
               <th>Last Update</th>
-              <th>Action</th>
+              <th></th>
             </tr>
-          <thead>
-          -->
+          </thead>
           <tbody class="js-items">
             <tr class="js-row">
-              <td>
-                <span hidden>{{title}}</span>
+              <td style="text-align: left"><span hidden>{{created}}</span></td>
+              <td style="text-align: left">
+                <span hidden><h3>{{title}}</h3></span>
                 <input
                   name="uuid"
                   type="hidden"
@@ -82,10 +82,11 @@
                   class="js-uuid"
                 />
               </td>
-              <td><span hidden>{{created}}</span></td>
-              <td><span hidden>{{updated}}</span></td>
               <td>
                 <button onclick="Post.load(event)">Load Draft</button>
+              </td>
+              <td style="text-align: left"><span hidden>{{updated}}</span></td>
+              <td>
                 <a href="" onclick="Post.delete(event);"> 🗑 </a>
               </td>
             </tr>
@@ -140,14 +141,14 @@ You just focus on the Bliss of writing your content!
               placeholder="Post Title"
             />
           </label -->
-          <label
+          <!-- label
             >Created:
             <input
               type="datetime-local"
               name="created"
               onchange="Post.save(event)"
             />
-          </label>
+          </label -->
           <fieldset>
             <label style="width: 65%"
               >Repo:

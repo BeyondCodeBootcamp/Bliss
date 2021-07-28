@@ -92,6 +92,7 @@ Post._format = function (_key, val, _system) {
     meridian = "pm";
     times[0] = hour;
   }
+  times[0] = hour;
   times[2] = "00";
   // 2021-07-01 + ' ' + 1:59:59 + ' ' +  pm
   return date + " " + times.join(":") + " " + meridian;
@@ -318,10 +319,12 @@ Post._store = function (post) {
   post._repo = $('input[name="repo"]').value || "";
   //post.title = $('input[name="title"]').value;
   // 2021-07-01T13:59:59 => 2021-07-01T13:59:59-0600
+  /*
   post.created = XTZ.toUTC(
     $('input[name="created"]').value,
     timezone
   ).toISOString();
+  */
   post.updated = post.updated || post.created;
   var text = $('textarea[name="content"]').value;
   post.title = Post._parseTitle(text);
@@ -435,7 +438,7 @@ Post._delete = function (uuid) {
 Post._load = function (uuid) {
   var post = Post.restore(uuid);
   //$('input[name="title"]').value = post.title;
-  $('input[name="created"]').value = Post._toInputDatetimeLocal(post.created);
+  //$('input[name="created"]').value = Post._toInputDatetimeLocal(post.created);
   if (post._githost) {
     $('select[name="githost"]').value = post._githost;
   }
@@ -491,11 +494,11 @@ Post._load = function (uuid) {
         .replace("{{uuid}}", post.uuid)
         .replace(
           "{{created}}",
-          "🗓" + Post._toInputDatetimeLocal(post.created).replace(/T/g, " ⏰")
+          "🗓" + Post._toInputDatetimeLocal(post.created).replace(/T/g, "<br>⏰")
         )
         .replace(
           "{{updated}}",
-          "🗓" + Post._toInputDatetimeLocal(post.updated).replace(/T/g, " ⏰")
+          "🗓" + Post._toInputDatetimeLocal(post.updated).replace(/T/g, "<br>⏰")
         );
       return tmpl;
     });
