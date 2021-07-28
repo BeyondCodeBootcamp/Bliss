@@ -191,13 +191,15 @@ Post._preview = function (post) {
   }
   pathname = encodeURI(pathname);
 
+  // construct href
+  var href = "";
   var content = encodeURIComponent(filestr);
-  var commitPath;
-  // TODO branch name (default main or master)
   switch (post._githost) {
     case "gitea":
-      $("a.js-commit-url").href +=
-        "/_new/main?filename=" +
+      href =
+        "/_new/" +
+        post._gitbranch +
+        "?filename=" +
         pathname +
         "/" +
         post._slug +
@@ -205,17 +207,31 @@ Post._preview = function (post) {
         content;
       break;
     case "github":
-      $("a.js-commit-url").href +=
-        "/new/main?filename=" +
+    /* falls through */
+    case "gitlab":
+    /* falls through */
+    default:
+      href =
+        "/new/" +
+        post._gitbranch +
+        "?filename=" +
         pathname +
         "/" +
         post._slug +
         ".md&value=" +
         content;
+  }
+
+  // issue warnings if needed
+  switch (post._githost) {
+    case "gitea":
+      break;
+    case "github":
       break;
     case "gitlab":
       window.alert(
-        "GitLab doesn't have query param support yet.\n\nSee https://gitlab.com/gitlab-org/gitlab/-/issues/337038"
+        "GitLab doesn't have query param support yet.\n\n" +
+          "See https://gitlab.com/gitlab-org/gitlab/-/issues/337038"
       );
       break;
     default:
@@ -224,15 +240,8 @@ Post._preview = function (post) {
         "Warning: using a default post._blog by accident",
         post._blog
       );
-      $("a.js-commit-url").href +=
-        "/new/main?filename=" +
-        pathname +
-        "/" +
-        // TODO filename?
-        post._slug +
-        ".md&value=" +
-        content;
   }
+  $("a.js-commit-url").href += href;
 
   $("code.js-raw-url").innerText = $("a.js-commit-url").href;
 };
@@ -243,6 +252,9 @@ Post.restore = function (uuid) {
 
   if (!post._repo) {
     post._repo = "";
+  }
+  if (!post._gitbranch) {
+    post._gitbranch = "main";
   }
 
   if (!post.title) {
@@ -293,6 +305,7 @@ Post._store = function (post) {
   post.timezone = post.timezone || timezone;
   post._blog = $('select[name="blog"]').value || "eon";
   post._githost = $('select[name="githost"]').value;
+  post._gitbranch = $('input[name="gitbranch"]').value || "main";
   post._repo = $('input[name="repo"]').value || "";
   post.title = $('input[name="title"]').value;
   // 2021-07-01T13:59:59 => 2021-07-01T13:59:59-0600
@@ -325,6 +338,7 @@ Post._store = function (post) {
       timezone: post.timezone,
       _blog: post._blog,
       _githost: post._githost,
+      _gitbranch: post._gitbranch,
       _repo: post._repo,
     })
   );
@@ -408,6 +422,9 @@ Post._load = function (uuid) {
   $('input[name="created"]').value = Post._toInputDatetimeLocal(post.created);
   if (post._githost) {
     $('select[name="githost"]').value = post._githost;
+  }
+  if (post._gitbranch) {
+    $('input[name="gitbranch"]').value = post._gitbranch;
   }
   if (post._blog) {
     $('select[name="blog"]').value = post._blog;

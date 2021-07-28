@@ -139,8 +139,30 @@
             />
           </label>
           <fieldset>
+            <label style="width: 65%"
+              >Repo:
+              <input
+                type="url"
+                name="repo"
+                style="width: 80%"
+                onchange="Post.save(event)"
+                placeholder="https://github.com/EXAMPLE/PROJECT"
+                required
+              />
+            </label>
+            <label style="width: 25%"
+              >Branch:
+              <input
+                name="gitbranch"
+                placeholder="ex: main, master, or gh-pages"
+                value="main"
+                onchange="Post.save(event)"
+              />
+            </label>
+          </fieldset>
+          <fieldset>
             <label
-              >Blog:
+              >Blog or Static Site System:
               <select name="blog" onchange="Post.save(event)">
                 <option value="desi">Desi</option>
                 <option value="eon" seleted>Eon (Hugo Theme)</option>
@@ -148,21 +170,14 @@
               </select>
             </label>
             <label
-              >Git:
+              >Git Host:
               <select name="githost" onchange="Post.save(event)">
-                <option value="github" selected>GitLab</option>
-                <option value="gitea">Gitea</option>
-                <option value="gitlab" disabled>GitLab</option>
+                <option value="github" selected>GitHub</option>
+                <option value="gitea">Gitea v1.16+</option>
+                <option value="gitlab" disabled>
+                  GitLab (see gitlab#337038)
+                </option>
               </select>
-            </label>
-            <label
-              >Repo:
-              <input
-                type="url"
-                name="repo"
-                onchange="Post.save(event)"
-                placeholder="https://github.com/EXAMPLE/PROJECT"
-              />
             </label>
             <label
               ><a class="js-commit-url" target="_blank"
