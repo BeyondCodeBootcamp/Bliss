@@ -1,21 +1,23 @@
-# [🅱 Bliss™](https://bliss.coolaj86.com)
+# <a href="https://bliss.coolaj86.com"><img src="./bliss-96px.png" height="32" /> Bliss™</a>
 
-A frontend for you static site blog, to make blog posts as easy as Gist.
+A frontend for Static Site generators that don't already have one - such as
+Hugo, Desi, etc...
 
-# Demo
+Bliss makes creating posts as easy as Gist.
 
-<a href="https://bliss.coolaj86.com"><img width="800" alt="Bliss Demo" src="https://user-images.githubusercontent.com/122831/126893623-84a55dbb-68e4-4bbf-98a0-6f0f7e6011c7.png"></a>
+# Live Demo
 
 Try it out: https://bliss.coolaj86.com
 
-# Status
+<a href="https://bliss.coolaj86.com"><img width="800" alt="Bliss Demo" src="https://user-images.githubusercontent.com/122831/126893623-84a55dbb-68e4-4bbf-98a0-6f0f7e6011c7.png"></a>
 
-I've made this public because I'm live-streaming as I create it, not because I
-think it's at high levels of awesomeness.
+# Live Stream
 
+I recorded myself as I wrote it - in Vanilla JS (and a PR to Gitea with a
+little bit of Go).
+
+If you'd like to watch, checkout the full playlist:
 <https://www.youtube.com/playlist?list=PLxki0D-ilnqZcb8UIdivo70ttUGgC__LD>
-
-That said, it is already useful for me personally.
 
 # Legal
 
