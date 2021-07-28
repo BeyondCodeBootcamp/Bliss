@@ -143,15 +143,16 @@
               >Blog:
               <select name="blog" onchange="Post.save(event)">
                 <option value="desi">Desi</option>
-                <option value="eon">EON (Hugo)</option>
+                <option value="eon" seleted>Eon (Hugo Theme)</option>
                 <option value="bash">BashBlog</option>
               </select>
             </label>
             <label
               >Git:
               <select name="githost" onchange="Post.save(event)">
+                <option value="github" selected>GitLab</option>
                 <option value="gitea">Gitea</option>
-                <option value="github" selected>Github</option>
+                <option value="gitlab" disabled>GitLab</option>
               </select>
             </label>
             <label

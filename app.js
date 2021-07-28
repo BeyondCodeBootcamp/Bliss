@@ -166,7 +166,7 @@ Post._preview = function (post) {
 
   $("span.js-githost").innerText = $(
     'select[name="githost"] option:checked'
-  ).innerText;
+  ).innerText.split(" ")[0];
   // ex: https://github.com/beyondcodebootcamp/beyondcodebootcamp.com/
   $("a.js-commit-url").href = post._repo.replace(/\/$/, "");
 
@@ -196,27 +196,27 @@ Post._preview = function (post) {
   // TODO branch name (default main or master)
   switch (post._githost) {
     case "gitea":
-      // TODO example url
       $("a.js-commit-url").href +=
-        // TODO "/_new/main?filename=" +
-        "/_new/main" +
+        "/_new/main?filename=" +
         pathname +
         "/" +
-        // TODO filename?
         post._slug +
-        ".md?value=" +
+        ".md&value=" +
         content;
       break;
     case "github":
-      // TODO example url
       $("a.js-commit-url").href +=
         "/new/main?filename=" +
         pathname +
         "/" +
-        // TODO filename?
         post._slug +
         ".md&value=" +
         content;
+      break;
+    case "gitlab":
+      window.alert(
+        "GitLab doesn't have query param support yet.\n\nSee https://gitlab.com/gitlab-org/gitlab/-/issues/337038"
+      );
       break;
     default:
       // TODO log error
