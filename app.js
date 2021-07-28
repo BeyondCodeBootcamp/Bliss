@@ -103,7 +103,7 @@ Post._preview = function (post) {
     desi: [
       "---",
       'title: "{{title}}"',
-      'description: "CHANGE ME !!!!!!"',
+      'description: "{{description}}"',
       'timezone: "{{timezone}}"',
       'date: "{{created}}"',
       'updated: "{{updated}}"',
@@ -116,7 +116,7 @@ Post._preview = function (post) {
     eon: [
       "---",
       'title: "{{title}}"',
-      'description: "CHANGE ME !!!!!!"',
+      'description: "{{description}}"',
       'timezone: "{{timezone}}"',
       'date: "{{created}}"',
       'updated: "{{updated}}"',
@@ -125,7 +125,10 @@ Post._preview = function (post) {
       "  - CHANGE_ME_______________",
       "---",
     ],
-    bash: ["{{title}}"],
+    bash: [
+      "{{title}}",
+      '<span class="description" display="none" hidden>{{description}}</span>',
+    ],
   };
   post._slug = Post._toSlug(post.title);
   post._filename = post._slug + ".md";
@@ -140,6 +143,8 @@ Post._preview = function (post) {
     // str = str.replace(new RegExp('"{{'+key+'}}"', 'g'), val)
     .replace(/"{{title}}"/g, JSON.stringify(post.title))
     .replace(/{{title}}/g, post.title)
+    .replace(/"{{description}}"/g, JSON.stringify(post.title))
+    .replace(/{{description}}/g, post.title)
     .replace(/"{{timezone}}"/g, JSON.stringify(post.timezone))
     .replace(/{{timezone}}/g, post.timezone)
     .replace(/"{{created}}"/g, JSON.stringify(created))
@@ -163,6 +168,15 @@ Post._preview = function (post) {
     $(".js-preview").innerText = filestr;
   } else {
     $(".js-preview-container").hidden = true;
+  }
+  $(".js-description-length").innerText = post.description.length;
+  // TODO put colors in variables
+  if (post.description.length > 155) {
+    $(".js-description-length").style.color = "#F60208";
+  } else if (post.description.length > 125) {
+    $(".js-description-length").style.color = "#FD9D19";
+  } else {
+    $(".js-description-length").style.removeProperty("color");
   }
 
   $("span.js-githost").innerText = $(
@@ -278,12 +292,20 @@ Post.restore = function (uuid) {
       localStorage.getItem(post.uuid + ".updated") || post.created;
   }
 
-  // TODO _blog, _githost, _repo
-
   post.content =
     localStorage.getItem("post." + post.uuid + ".data") ||
     localStorage.getItem(post.uuid + ".content") ||
     "";
+  if (!post.description) {
+    post.description = post.content.slice(0, 152);
+    if (152 === post.description.length) {
+      post.description = post.description.slice(
+        0,
+        post.description.lastIndexOf(" ")
+      );
+      post.description += "...";
+    }
+  }
 
   if (!post.title) {
     post.title =
@@ -326,6 +348,7 @@ Post._store = function (post) {
   ).toISOString();
   */
   post.updated = post.updated || post.created;
+  post.description = $('textarea[name="description"]').value;
   var text = $('textarea[name="content"]').value;
   post.title = Post._parseTitle(text);
   // skip the first
@@ -350,6 +373,7 @@ Post._store = function (post) {
     "post." + post.uuid + ".meta",
     JSON.stringify({
       title: post.title,
+      description: post.description,
       uuid: post.uuid,
       _slug: post._slug,
       created: post.created,
@@ -455,6 +479,7 @@ Post._load = function (uuid) {
   } else {
     $('textarea[name="content"]').value = "";
   }
+  $('textarea[name="description"]').value = post.description || "";
   $(".js-undelete").hidden = true;
 
   Post._preview(post);
