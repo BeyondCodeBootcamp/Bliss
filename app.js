@@ -418,11 +418,15 @@ Post.create = function (ev) {
   ev.preventDefault();
   ev.stopPropagation();
 
+  Post._create();
+  Post.list();
+};
+
+Post._create = function () {
   var uuid = Post._uuid();
   localStorage.setItem("current", uuid);
   Post._current = Post._load(uuid);
   Post._store(Post._current);
-  Post.list();
 };
 
 Post.delete = function (ev) {
@@ -508,7 +512,15 @@ Post._load = function (uuid) {
   };
 
   Post.list = function () {
-    var items = Post._all().map(function (uuid) {
+    var uuids = Post._all();
+    if (!uuids.length) {
+      // Create first post ever on first ever page load
+      // (or after literally everything is deleted)
+      Post._create();
+      uuids = Post._all();
+    }
+
+    var items = uuids.map(function (uuid) {
       var post = Post.restore(uuid);
       var tmpl = listTmpl
         .replace(/ hidden/g, "")
