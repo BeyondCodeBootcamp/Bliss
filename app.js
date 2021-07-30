@@ -98,6 +98,7 @@ Post._format = function (_key, val, _system) {
   return date + " " + times.join(":") + " " + meridian;
 };
 
+// TODO rename rawPreview
 Post._preview = function (post) {
   var systems = {
     desi: [
@@ -169,6 +170,8 @@ Post._preview = function (post) {
   } else {
     $(".js-preview-container").hidden = true;
   }
+
+  $('textarea[name="description"]').value = post.description;
   $(".js-description-length").innerText = post.description.length;
   // TODO put colors in variables
   if (post.description.length > 155) {
@@ -297,14 +300,7 @@ Post.restore = function (uuid) {
     localStorage.getItem(post.uuid + ".content") ||
     "";
   if (!post.description) {
-    post.description = post.content.slice(0, 152);
-    if (152 === post.description.length) {
-      post.description = post.description.slice(
-        0,
-        post.description.lastIndexOf(" ")
-      );
-      post.description += "...";
-    }
+    post.description = Post._parseDescription(post);
   }
 
   if (!post.title) {
@@ -312,6 +308,10 @@ Post.restore = function (uuid) {
       // TODO deprecate
       localStorage.getItem(post.uuid + ".title") || "";
   }
+
+  post._previous = {
+    title: post.title,
+  };
 
   return post;
 };
@@ -331,6 +331,15 @@ Post._parseTitle = function (text) {
   return title;
 };
 
+Post._parseDescription = function (post) {
+  var description = post.content.slice(0, 152);
+  if (152 === description.length) {
+    description = description.slice(0, description.lastIndexOf(" "));
+    description += "...";
+  }
+  return description;
+};
+
 Post._store = function (post) {
   // TODO debounce with max time
   var timezone = new Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -348,15 +357,30 @@ Post._store = function (post) {
   ).toISOString();
   */
   post.updated = post.updated || post.created;
-  post.description = $('textarea[name="description"]').value;
+
   var text = $('textarea[name="content"]').value;
   post.title = Post._parseTitle(text);
-  // skip the first
+
+  // skip the first line of text (which was the title)
   post.content = text
     .split(/[\r\n]/g)
     .slice(1)
     .join("\n")
     .trim();
+
+  var inputDescription = $('textarea[name="description"]').value;
+  if (inputDescription && post.description) {
+    if (!post._dirtyDescription) {
+      post._dirtyDescription = post.description !== inputDescription;
+    }
+  } else {
+    post._dirtyDescription = false;
+  }
+  if (!post._dirtyDescription) {
+    post.description = Post._parseDescription(post);
+  } else {
+    post.description = inputDescription;
+  }
 
   var all = Post._all();
   if (!all.includes(post.uuid)) {
@@ -411,6 +435,7 @@ Post.load = function (ev) {
   var parent = ev.target.closest(".js-row");
   var uuid = $('input[name="uuid"]', parent).value;
   localStorage.setItem("current", uuid);
+  // TODO maybe current should have a more precise name, such as currentPost
   Post._current = Post._load(uuid);
 };
 
@@ -423,9 +448,8 @@ Post.create = function (ev) {
 };
 
 Post._create = function () {
-  var uuid = Post._uuid();
-  localStorage.setItem("current", uuid);
-  Post._current = Post._load(uuid);
+  Post._current = Post._load("");
+  localStorage.setItem("current", Post._current.uuid);
   Post._store(Post._current);
 };
 
@@ -508,6 +532,14 @@ Post._load = function (uuid) {
      */
 
     Post._store(post);
+    if (post._previous.title !== post.title) {
+      //Post._updateRow(post);
+      var cell = $('input[name="uuid"][value="' + post.uuid + '"]');
+      var row = cell.closest("tr");
+      // TODO put .js-title in a span on the title
+      $("h3", row).innerText = post.title;
+      post._previous.title = post.title;
+    }
     Post._preview(post);
   };
 
