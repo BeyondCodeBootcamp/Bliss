@@ -110,7 +110,7 @@ Post._preview = function (post) {
       'updated: "{{updated}}"',
       "uuid: {{uuid}}",
       "categories:",
-      "  - CHANGE_ME_______________",
+      "  - Web Development",
       "permalink: /articles/{{slug}}/",
       "---",
     ],
@@ -123,7 +123,7 @@ Post._preview = function (post) {
       'updated: "{{updated}}"',
       "uuid: {{uuid}}",
       "categories:",
-      "  - CHANGE_ME_______________",
+      "  - Web Development",
       "---",
     ],
     bash: [
