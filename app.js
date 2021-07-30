@@ -534,6 +534,26 @@ Post._load = function (uuid) {
 (async function () {
   "use strict";
 
+  Post._render = function (uuid) {
+    var post = Post.restore(uuid);
+    var tmpl = Post._listTmpl
+      .replace(/ hidden/g, "")
+      .replace(
+        "{{title}}",
+        post.title.slice(0, 50).replace(/</g, "&lt;") || "<i>Untitled</i>"
+      )
+      .replace("{{uuid}}", post.uuid)
+      .replace(
+        "{{created}}",
+        "🗓" + Post._toInputDatetimeLocal(post.created).replace(/T/g, "<br>⏰")
+      )
+      .replace(
+        "{{updated}}",
+        "🗓" + Post._toInputDatetimeLocal(post.updated).replace(/T/g, "<br>⏰")
+      );
+    return tmpl;
+  };
+
   Post._update = function (post) {
     /*
      * Example:
@@ -550,11 +570,9 @@ Post._load = function (uuid) {
 
     Post._store(post);
     if (post._previous.title !== post.title) {
-      //Post._updateRow(post);
       var cell = $('input[name="uuid"][value="' + post.uuid + '"]');
       var row = cell.closest("tr");
-      // TODO put .js-title in a span on the title
-      $("h3", row).innerText = post.title;
+      row.outerHTML = Post._render(post.uuid);
       post._previous.title = post.title;
     }
     Post._preview(post);
@@ -569,28 +587,10 @@ Post._load = function (uuid) {
       uuids = Post._all();
     }
 
-    var items = uuids.map(function (uuid) {
-      var post = Post.restore(uuid);
-      var tmpl = listTmpl
-        .replace(/ hidden/g, "")
-        .replace(
-          "{{title}}",
-          post.title.slice(0, 50).replace(/</g, "&lt;") || "<i>Untitled</i>"
-        )
-        .replace("{{uuid}}", post.uuid)
-        .replace(
-          "{{created}}",
-          "🗓" + Post._toInputDatetimeLocal(post.created).replace(/T/g, "<br>⏰")
-        )
-        .replace(
-          "{{updated}}",
-          "🗓" + Post._toInputDatetimeLocal(post.updated).replace(/T/g, "<br>⏰")
-        );
-      return tmpl;
-    });
+    var items = uuids.map(Post._render);
     if (!items.length) {
       items.push(
-        listTmpl
+        Post._listTmpl
           .replace(/ hidden/g, "")
           .replace("{{title}}", "<i>Untitled</i>")
           .replace("{{uuid}}", "")
@@ -607,7 +607,7 @@ Post._load = function (uuid) {
     $(".js-items").innerHTML = items.join("\n");
   };
 
-  var listTmpl = $(".js-row").outerHTML;
+  Post._listTmpl = $(".js-row").outerHTML;
   $(".js-row").remove();
 
   Post._current = Post._load(localStorage.getItem("current"));
