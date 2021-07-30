@@ -419,6 +419,23 @@ Post.save = function (ev) {
   Post._update(Post._current);
 };
 
+Post.patch = function (ev) {
+  ev.preventDefault();
+  ev.stopPropagation();
+
+  // Example:
+  // If the description is empty, let the user have a chance
+  // to fill in the blank (despite the fact that we set the
+  // default value and just skip showing it)
+  if (!ev.target.value) {
+    Post._current[ev.target.name] = "";
+    Post._store(Post._current);
+    return;
+  }
+
+  Post._update(Post._current);
+};
+
 Post.undelete = function (ev) {
   ev.preventDefault();
   ev.stopPropagation();
