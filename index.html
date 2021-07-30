@@ -28,6 +28,16 @@
     <script src="https://unpkg.com/ajquery@2.1/ajquery.min.js"></script>
     <script src="https://unpkg.com/xtz@1.0/xtz.min.js"></script>
     <style>
+      nav {
+        margin-bottom: 0.8rem;
+      }
+      header {
+        padding-top: 0;
+        padding-bottom: 0.8rem;
+      }
+      main {
+        padding-top: 0;
+      }
       fieldset {
         border-style: none;
       }
@@ -44,6 +54,7 @@
           <!-- I think this is the Blood Type emjoi?? -->
           <!-- span style="font-size: 4em"> 🅱 </span -->
         </a>
+        <h1>Bliss: Blog, Easy As Gist</h1>
         <ul>
           <li>Post</li>
           <li>
@@ -53,9 +64,6 @@
           </li>
         </ul>
       </nav>
-      <h1>A Blog System as Easy as Gist</h1>
-      <b>All killer, no filler</b>, just <em>visit the page</em>,
-      <b>add some Markdown</b> and <mark>you're done</mark>.
     </header>
     <main>
       <section>
@@ -136,7 +144,7 @@ You just focus on the Bliss of writing your content!
               rows="3"
               placeholder="This will be used for Facebook, Twitter, and Google Search previews.
 Best kept 50 - 155 characters."
-              onkeyup="Post.save(event)"
+              onkeyup="Post.patch(event)"
             ></textarea>
           </label>
           <div
