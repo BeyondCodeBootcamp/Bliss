@@ -91,7 +91,7 @@
                 />
               </td>
               <td>
-                <button onclick="Post.load(event)">Load Draft</button>
+                <button onclick="Post.deserialize(event);">Load Draft</button>
               </td>
               <td style="text-align: left"><span hidden>{{updated}}</span></td>
               <td>
@@ -132,7 +132,7 @@ Hello, World!
 
 You just focus on the Bliss of writing your content!
 "
-              onkeyup="Post.save(event)"
+              onkeyup="Post.serialize(event)"
             ></textarea>
           </label>
           <label
@@ -168,10 +168,7 @@ Best kept 50 - 155 characters."
               type="text"
               name="title"
               size="28"
-              onkeyup="
-                Post.save(event);
-                Post.list();
-              "
+              onkeyup="Post.serialize(event);"
               placeholder="Post Title"
             />
           </label -->
@@ -180,7 +177,7 @@ Best kept 50 - 155 characters."
             <input
               type="datetime-local"
               name="created"
-              onchange="Post.save(event)"
+              onchange="Post.serialize(event)"
             />
           </label -->
           <fieldset>
@@ -190,7 +187,7 @@ Best kept 50 - 155 characters."
                 type="url"
                 name="repo"
                 style="width: 80%"
-                onchange="Post.save(event)"
+                onchange="Post.serialize(event)"
                 placeholder="https://github.com/EXAMPLE/PROJECT"
                 required
               />
@@ -201,14 +198,14 @@ Best kept 50 - 155 characters."
                 name="gitbranch"
                 placeholder="ex: main, master, or gh-pages"
                 value="main"
-                onchange="Post.save(event)"
+                onchange="Post.serialize(event)"
               />
             </label>
           </fieldset>
           <fieldset>
             <label
               >Blog or Static Site System:
-              <select name="blog" onchange="Post.save(event)">
+              <select name="blog" onchange="Post.serialize(event)">
                 <option value="desi">Desi</option>
                 <option value="eon" seleted>Eon (Hugo Theme)</option>
                 <option value="bash">BashBlog</option>
@@ -216,7 +213,7 @@ Best kept 50 - 155 characters."
             </label>
             <label
               >Git Host:
-              <select name="githost" onchange="Post.save(event)">
+              <select name="githost" onchange="Post.serialize(event)">
                 <option value="github" selected>GitHub</option>
                 <option value="gitea">Gitea v1.16+</option>
                 <option value="gitlab" disabled>
