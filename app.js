@@ -387,6 +387,8 @@ function _localStorageGetAll(prefix) {
     },
     zola: {
       pathname: "/content",
+      // RFC3339
+      date: "iso",
       frontmatter: [
         // Zola uses TOML frontmatter
         "+++",
@@ -403,12 +405,17 @@ function _localStorageGetAll(prefix) {
   // TODO auto-upgrade the oldies
   Post._systems.eon = Post._systems.hugo;
   Post._gitNewFilePreview = function (post) {
-    // TODO how should "a blog" (hugo+eon+github+url) be represented?
-    // (wait and see)
+    var blog = BlogModel.getByPost(post) || {
+      // deprecate
+      repo: post._repo,
+      githost: post._githost,
+      gitbranch: post._gitbranch,
+      blog: post._blog,
+    };
     post.slug = PostModel._toSlug(post.title);
     post._filename = post.slug + ".md";
     post._template = (
-      Post._systems[post._blog] || Post._systems.hugo
+      Post._systems[blog.blog] || Post._systems.hugo
     ).frontmatter.join("\n");
 
     // TODO Post._renderFrontmatter
@@ -476,20 +483,17 @@ function _localStorageGetAll(prefix) {
     return date + " " + times.join(":") + " " + meridian;
   };
   Post._addHref = function (post) {
-    post._href = post._repo;
-
-    // TODO post.blog_id
     var blog = BlogModel.getByPost(post) || {
       repo: post._repo,
       githost: post._githost,
       gitbranch: post._gitbranch,
       blog: post._blog,
     };
-    var pathname = (Post._systems[post._blog] || Post._systems.hugo).pathname;
-    if (!Post._systems[post._blog]) {
+    var pathname = (Post._systems[blog.blog] || Post._systems.hugo).pathname;
+    if (!Post._systems[blog.blog]) {
       console.warn(
-        "Warning: default post._blog was not specified, assuming hugo",
-        post._blog
+        "Warning: blog system not specified or unsupported, assuming hugo",
+        blog.blog
       );
     }
     pathname = encodeURI(pathname);
@@ -540,12 +544,12 @@ function _localStorageGetAll(prefix) {
       default:
         // TODO log error
         console.warn(
-          "Warning: using a default post._blog by accident",
-          post._blog
+          "Warning: blog.githost was not specified or unsupported, assuming github",
+          blog.githost
         );
     }
 
-    post._href += href;
+    post._href = post._repo + href;
 
     return post;
   };
