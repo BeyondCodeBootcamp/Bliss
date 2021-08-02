@@ -84,6 +84,7 @@ function _localStorageGetAll(prefix) {
       githost: githost,
       blog: blog, // system (ex: Hugo)
     });
+    Blog._renderRepoTypeaheads();
     Post.serialize(ev);
   };
 
