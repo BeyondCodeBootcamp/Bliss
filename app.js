@@ -121,10 +121,10 @@ function _localStorageGetAll(prefix) {
     var timezone = new Intl.DateTimeFormat().resolvedOptions().timeZone;
     post.timezone = post.timezone || timezone;
 
-    post._blog = $('select[name="blog"]').value || "eon";
-    post._githost = $('select[name="githost"]').value;
+    // TODO refactor
     post._gitbranch = $('input[name="gitbranch"]').value || "main";
-    post._repo = $('input[name="repo"]').value || "";
+    post._repo = ($('input[name="repo"]').value || "").replace(/\/+$/, "");
+    post.blog_id = post._repo + "#" + post._gitbranch;
     //post.title = $('input[name="title"]').value;
     // 2021-07-01T13:59:59 => 2021-07-01T13:59:59-0600
     /*
@@ -202,18 +202,26 @@ function _localStorageGetAll(prefix) {
   };
   Post._deserialize = function (uuid) {
     var post = PostModel.getOrCreate(uuid);
+    var blog = BlogModel.getByPost(post) || {
+      // deprecate
+      repo: post._repo,
+      githost: post._githost,
+      gitbranch: post._gitbranch,
+      blog: post._blog,
+    };
+    if (blog.githost) {
+      $('select[name="githost"]').value = blog.githost;
+    }
+    if (blog.gitbranch) {
+      $('input[name="gitbranch"]').value = blog.gitbranch;
+    }
+    if (blog.blog) {
+      $('select[name="blog"]').value = blog.blog;
+    }
+    $('input[name="repo"]').value = blog.repo;
+
     //$('input[name="title"]').value = post.title;
     //$('input[name="created"]').value = PostModel._toInputDatetimeLocal(post.created);
-    if (post._githost) {
-      $('select[name="githost"]').value = post._githost;
-    }
-    if (post._gitbranch) {
-      $('input[name="gitbranch"]').value = post._gitbranch;
-    }
-    if (post._blog) {
-      $('select[name="blog"]').value = post._blog;
-    }
-    $('input[name="repo"]').value = post._repo;
     if (post.title || post.content) {
       $('textarea[name="content"]').value =
         "# " + (post.title || "Untitled") + "\n\n" + post.content;
@@ -437,10 +445,17 @@ function _localStorageGetAll(prefix) {
     return date + " " + times.join(":") + " " + meridian;
   };
   Post._addHref = function (post) {
-    post._href = post._repo.replace(/\/$/, "");
+    post._href = post._repo;
 
+    // TODO post.blog_id
+    var blog = BlogModel.getByPost(post) || {
+      repo: post._repo,
+      githost: post._githost,
+      gitbranch: post._gitbranch,
+      blog: post._blog,
+    };
     var pathname = "";
-    switch (post._blog) {
+    switch (blog.blog) {
       case "desi":
         pathname = "/posts";
         break;
@@ -463,11 +478,11 @@ function _localStorageGetAll(prefix) {
     // construct href
     var href = "";
     var content = encodeURIComponent(post._filestr);
-    switch (post._githost) {
+    switch (blog.githost) {
       case "gitea":
         href =
           "/_new/" +
-          post._gitbranch +
+          blog.gitbranch +
           "?filename=" +
           pathname +
           "/" +
@@ -482,7 +497,7 @@ function _localStorageGetAll(prefix) {
       default:
         href =
           "/new/" +
-          post._gitbranch +
+          blog.gitbranch +
           "?filename=" +
           pathname +
           "/" +
@@ -492,7 +507,7 @@ function _localStorageGetAll(prefix) {
     }
 
     // issue warnings if needed
-    switch (post._githost) {
+    switch (blog.githost) {
       case "gitea":
         break;
       case "github":
@@ -540,7 +555,7 @@ function _localStorageGetAll(prefix) {
     ).innerText.split(" ")[0];
     // ex: https://github.com/beyondcodebootcamp/beyondcodebootcamp.com/
 
-    $("a.js-commit-url").href += post._href;
+    $("a.js-commit-url").href = post._href;
 
     $("code.js-raw-url").innerText = $("a.js-commit-url").href;
     return post;
@@ -643,7 +658,7 @@ function _localStorageGetAll(prefix) {
         updated: post.updated,
         timezone: post.timezone,
         // TODO iterate over localStorage to upgrade
-        blog_id: post._repo,
+        blog_id: post._repo + "#" + post._gitbranch,
         _blog: post._blog,
         _githost: post._githost,
         _gitbranch: post._gitbranch,
@@ -753,6 +768,14 @@ function _localStorageGetAll(prefix) {
    * Post is the View
    *
    */
+  BlogModel.getByPost = function (post) {
+    var id = post.blog_id;
+    // deprecate
+    if (post._repo) {
+      id = post._repo.replace(/\/$/, "") + "#" + (post._gitbranch || "main");
+    }
+    return BlogModel.get(id);
+  };
   BlogModel.get = function (id) {
     // repo+#+branch
     var json = localStorage.getItem("blog." + id);
@@ -766,7 +789,15 @@ function _localStorageGetAll(prefix) {
   BlogModel.save = function (blogObj) {
     // blog.https://github.com/org/repo#main
     var key = "blog." + blogObj.repo + "#" + blogObj.gitbranch;
-    localStorage.setItem(key, JSON.stringify(blogObj));
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        repo: blogObj.repo,
+        gitbranch: blogObj.gitbranch,
+        githost: blogObj.githost,
+        blog: blogObj.blog, // system (ex: Hugo)
+      })
+    );
   };
 
   BlogModel.all = function (blogObj) {
@@ -774,8 +805,9 @@ function _localStorageGetAll(prefix) {
   };
 
   BlogModel._splitRepoBranch = function (repo, _branch) {
+    // TODO trim trailing /s
     var parts = repo.split("#");
-    repo = parts[0];
+    repo = parts[0].replace(/\/+$/, "");
     var branch = parts[1] || "";
     if (!branch || "undefined" === branch) {
       branch = _branch;
