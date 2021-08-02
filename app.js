@@ -1,12 +1,70 @@
-var XTZ = window.XTZ;
-var $ = window.$;
-var $$ = window.$$;
 var Post = {};
 var PostModel = {};
+
+var Blog = {};
 var BlogModel = {};
 
 (async function () {
   "use strict";
+
+  // Poor man's dependency tree
+  // (just so everybody knows what I expect to use in here)
+  var XTZ = window.XTZ;
+  var $ = window.$;
+  var $$ = window.$$;
+  var localStorage = window.localStorage;
+
+  Blog.serialize = function (ev) {
+    ev.stopPropagation();
+    ev.preventDefault();
+
+    var $form = ev.target.closest("form");
+    var repo = $('input[name="repo"]', $form).value;
+    var gitbranch = $('input[name="gitbranch"]', $form).value;
+    var githost = $('select[name="githost"]', $form).value;
+    var blog = $('select[name="blog"]', $form).value;
+
+    var dirty = false;
+    try {
+      new URL(repo);
+    } catch (e) {
+      // ignore
+      // dirty, don't save
+      dirty = true;
+    }
+
+    if (dirty || !gitbranch) {
+      Post.serialize(ev);
+      return;
+    }
+
+    var parts = BlogModel._splitRepoBranch(repo, gitbranch);
+    // TODO doesn't quite feel right
+    $('input[name="gitbranch"]', $form).value = parts.gitbranch;
+    if (repo.toLowerCase().startsWith("https://github.com/")) {
+      githost = "github";
+      $('select[name="githost"]', $form).value = githost;
+    }
+    $('input[name="repo"]', $form).value = parts.repo;
+
+    BlogModel.save({
+      repo: parts.repo,
+      gitbranch: parts.gitbranch,
+      githost: githost,
+      blog: blog, // system (ex: Hugo)
+    });
+    Post.serialize(ev);
+  };
+
+  Blog._renderRepoTypeaheads = function () {
+    $("#-repos").innerHTML = BlogModel.all().map(function (blog) {
+      var id = blog.repo;
+      if (blog.gitbranch) {
+        id += "#" + blog.gitbranch;
+      }
+      return Blog._typeaheadTmpl.replace(/{{\s*id\s*}}/, id);
+    });
+  };
 
   /**
    *
@@ -669,18 +727,65 @@ var BlogModel = {};
    * Post is the View
    *
    */
-  BlogModel.get = function (repo /*id*/) {
-    localStorage.getItem("blog." + repo);
+  BlogModel.get = function (id) {
+    // repo+#+branch
+    var json = localStorage.getItem("blog." + id);
+    if (!json) {
+      return null;
+    }
+
+    return JSON.parse(json);
   };
 
-  BlogModel.save = function (blog) {
-    localStorage.setItem("blog." + blog.repo, blog);
+  BlogModel.save = function (blogObj) {
+    // blog.https://github.com/org/repo#main
+    var key = "blog." + blogObj.repo + "#" + blogObj.gitbranch;
+    localStorage.setItem(key, JSON.stringify(blogObj));
+  };
+
+  BlogModel.all = function (blogObj) {
+    var i;
+    var key;
+    var blogs = [];
+    for (i = 0; i < localStorage.length; i += 1) {
+      key = localStorage.key(i);
+      if (key.startsWith("blog.")) {
+        blogs.push(BlogModel.get(key.replace("blog.", "")));
+      }
+    }
+    return blogs;
+  };
+
+  BlogModel._splitRepoBranch = function (repo, _branch) {
+    var parts = repo.split("#");
+    repo = parts[0];
+    var branch = parts[1] || "";
+    if (!branch || "undefined" === branch) {
+      branch = _branch;
+    }
+    return { repo: repo, gitbranch: branch };
   };
 
   /*
    * inits
    *
    */
+  Blog._init = function () {
+    Blog._typeaheadTmpl = $("#-repos").innerHTML;
+    Blog._renderRepoTypeaheads();
+    // hotfix
+    BlogModel.all().forEach(function (blog) {
+      // https://github.com/org/repo (no #branchname)
+      var parts = BlogModel._splitRepoBranch(blog.repo, blog.gitbranch);
+      blog.repo = parts.repo;
+      blog.gitbranch = parts.gitbranch;
+      if (!blog.gitbranch) {
+        // TODO delete
+      }
+      BlogModel.save(blog);
+    });
+  };
+
   Post._init = function () {
     // build template strings
     Post._rowTmpl = $(".js-row").outerHTML;
@@ -700,4 +805,5 @@ var BlogModel = {};
 
   PostModel._init();
   Post._init();
+  Blog._init();
 })();

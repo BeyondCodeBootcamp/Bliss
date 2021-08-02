@@ -180,32 +180,46 @@ Best kept 50 - 155 characters."
               onchange="Post.serialize(event)"
             />
           </label -->
+
+          <!-- about the blog system -->
           <fieldset>
             <label style="width: 65%"
               >Repo:
               <input
                 type="url"
                 name="repo"
+                list="-repos"
                 style="width: 80%"
-                onchange="Post.serialize(event)"
+                autocomplete="off"
+                onchange="Blog.serialize(event)"
                 placeholder="https://github.com/EXAMPLE/PROJECT"
                 required
               />
+              <datalist id="-repos">
+                <option value="{{id}}"></option>
+              </datalist>
             </label>
             <label style="width: 25%; float: right; margin-right: 2.8em"
               >Branch:
               <input
                 name="gitbranch"
                 placeholder="ex: main, master, or gh-pages"
+                autocomplete="on"
+                list="-branches"
                 value="main"
-                onchange="Post.serialize(event)"
+                onchange="Blog.serialize(event)"
               />
+              <datalist id="-branches">
+                <option value="main"></option>
+                <option value="master"></option>
+                <option value="gh-pages"></option>
+              </datalist>
             </label>
           </fieldset>
           <fieldset>
             <label
               >Blog or Static Site System:
-              <select name="blog" onchange="Post.serialize(event)">
+              <select name="blog" onchange="Blog.serialize(event)">
                 <option value="desi">Desi</option>
                 <option value="eon" seleted>Eon (Hugo Theme)</option>
                 <option value="bash">BashBlog</option>
@@ -213,7 +227,7 @@ Best kept 50 - 155 characters."
             </label>
             <label
               >Git Host:
-              <select name="githost" onchange="Post.serialize(event)">
+              <select name="githost" onchange="Blog.serialize(event)">
                 <option value="github" selected>GitHub</option>
                 <option value="gitea">Gitea v1.16+</option>
                 <option value="gitlab" disabled>
