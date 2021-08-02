@@ -346,44 +346,70 @@ function _localStorageGetAll(prefix) {
       permalink: /articles/CHANGE-ME-SLUG/
       ---
      */
-    desi: [
-      "---",
-      'title: "{{title}}"',
-      'description: "{{description}}"',
-      'timezone: "{{timezone}}"',
-      'date: "{{created}}"',
-      'updated: "{{updated}}"',
-      "uuid: {{uuid}}",
-      "categories:",
-      "  - Web Development",
-      "permalink: /articles/{{slug}}/",
-      "---",
-    ],
-    eon: [
-      "---",
-      'title: "{{title}}"',
-      'description: "{{description}}"',
-      'timezone: "{{timezone}}"',
-      'date: "{{created}}"',
-      'lastmod: "{{updated}}"',
-      "uuid: {{uuid}}",
-      "categories:",
-      "  - Web Development",
-      "---",
-    ],
-    bash: [
-      "{{title}}",
-      '<meta name="description" content="{{description}}" />',
-    ],
+    desi: {
+      pathname: "/posts",
+      frontmatter: [
+        "---",
+        'title: "{{title}}"',
+        'description: "{{description}}"',
+        'timezone: "{{timezone}}"',
+        'date: "{{created}}"',
+        'updated: "{{updated}}"',
+        "uuid: {{uuid}}",
+        "categories:",
+        "  - Web Development",
+        "permalink: /articles/{{slug}}/",
+        "---",
+      ],
+    },
+    hugo: {
+      pathname: "/content/blog",
+      frontmatter: [
+        "---",
+        'title: "{{title}}"',
+        'description: "{{description}}"',
+        'timezone: "{{timezone}}"',
+        'date: "{{created}}"',
+        'lastmod: "{{updated}}"',
+        "uuid: {{uuid}}",
+        "categories:",
+        "  - Web Development",
+        "---",
+      ],
+    },
+    bash: {
+      pathname: "/articles",
+      frontmatter: [
+        // BashBlog has no frontmatter
+        "{{title}}",
+        '<meta name="description" content="{{description}}" />',
+      ],
+    },
+    zola: {
+      pathname: "/content",
+      frontmatter: [
+        // Zola uses TOML frontmatter
+        "+++",
+        "title = {{title}}",
+        "description = {{description}}",
+        "date = {{created}}",
+        "updated = {{updated}}",
+        "draft = false",
+        "slug = {{slug}}",
+        "+++",
+      ],
+    },
   };
+  // TODO auto-upgrade the oldies
+  Post._systems.eon = Post._systems.hugo;
   Post._gitNewFilePreview = function (post) {
     // TODO how should "a blog" (hugo+eon+github+url) be represented?
     // (wait and see)
     post.slug = PostModel._toSlug(post.title);
     post._filename = post.slug + ".md";
-    post._template = (Post._systems[post._blog] || Post._systems.eon).join(
-      "\n"
-    );
+    post._template = (
+      Post._systems[post._blog] || Post._systems.hugo
+    ).frontmatter.join("\n");
 
     // TODO Post._renderFrontmatter
     var created = Post._formatFrontmatter(
@@ -426,9 +452,13 @@ function _localStorageGetAll(prefix) {
 
     return post;
   };
-  Post._formatFrontmatter = function (_key, val, _system) {
+  Post._formatFrontmatter = function (_key, val, system) {
     // 2021-07-01T13:59:59-0600
     // => 2021-07-01 1:59:59 pm
+    if ("Zola" === system) {
+      // TODO make this a property of the system, like 'pathname'
+      return val;
+    }
     var parts = val.split("T");
     var date = parts[0];
     var time = parts[1];
@@ -455,24 +485,12 @@ function _localStorageGetAll(prefix) {
       gitbranch: post._gitbranch,
       blog: post._blog,
     };
-    var pathname = "";
-    switch (blog.blog) {
-      case "desi":
-        pathname = "/posts";
-        break;
-      case "eon":
-        pathname = "/content/blog";
-        break;
-      case "bash":
-        pathname = "/articles";
-        break;
-      default:
-        // TODO log error
-        console.warn(
-          "Warning: using a default post._blog by accident",
-          post._blog
-        );
-        pathname = "/articles";
+    var pathname = (Post._systems[post._blog] || Post._systems.hugo).pathname;
+    if (!Post._systems[post._blog]) {
+      console.warn(
+        "Warning: default post._blog was not specified, assuming hugo",
+        post._blog
+      );
     }
     pathname = encodeURI(pathname);
 
