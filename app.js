@@ -4,6 +4,37 @@ var PostModel = {};
 var Blog = {};
 var BlogModel = {};
 
+function _localStorageGetIds(prefix, suffix) {
+  var i;
+  var key;
+  var ids = [];
+  for (i = 0; i < localStorage.length; i += 1) {
+    key = localStorage.key(i);
+    if (prefix && !key.startsWith(prefix)) {
+      continue;
+    }
+    if (suffix && !key.endsWith(suffix)) {
+      continue;
+    }
+    ids.push(key.slice(prefix.length).slice(0, -1 * suffix.length));
+  }
+  return ids;
+}
+
+function _localStorageGetAll(prefix) {
+  var i;
+  var key;
+  var items = [];
+  for (i = 0; i < localStorage.length; i += 1) {
+    key = localStorage.key(i);
+    if (!key.startsWith(prefix)) {
+      continue;
+    }
+    items.push(JSON.parse(localStorage.getItem(key)));
+  }
+  return items;
+}
+
 (async function () {
   "use strict";
 
@@ -197,12 +228,12 @@ var BlogModel = {};
   };
 
   Post._renderRows = function () {
-    var uuids = PostModel.all();
+    var uuids = PostModel.ids();
     if (!uuids.length) {
       // Create first post ever on first ever page load
       // (or after literally everything is deleted)
       Post._deserialize(PostModel.create().uuid);
-      uuids = PostModel.all();
+      uuids = PostModel.ids();
     }
 
     var items = uuids.map(Post._renderRow);
@@ -270,7 +301,7 @@ var BlogModel = {};
     if (uuid === PostModel._current.uuid) {
       // load as a failsafe, just in case
       localStorage.removeItem("current", uuid);
-      localStorage.setItem("current", PostModel.all()[0]);
+      localStorage.setItem("current", PostModel.ids()[0]);
     } else {
       PostModel._current = Post._deserialize(uuid);
     }
@@ -590,14 +621,12 @@ var BlogModel = {};
     return post;
   };
 
-  PostModel.all = function () {
-    return (localStorage.getItem("all") || "")
-      .split(/[\s,;:|]+/g)
-      .filter(Boolean);
+  PostModel.ids = function () {
+    return _localStorageGetIds("post.", ".meta");
   };
 
   PostModel.save = function (post) {
-    var all = PostModel.all();
+    var all = PostModel.ids();
     if (!all.includes(post.uuid)) {
       all.push(post.uuid);
       localStorage.setItem("all", all.join(PostModel._uuid_sep).trim());
@@ -625,11 +654,8 @@ var BlogModel = {};
   };
 
   PostModel.delete = function (uuid) {
-    var all = PostModel.all();
-    all = all.filter(function (_uuid) {
-      return uuid !== _uuid;
-    });
-    localStorage.setItem("all", all.join(PostModel._uuid_sep).trim());
+    localStorage.removeItem("post." + uuid + ".meta");
+    localStorage.removeItem("post." + uuid + ".content");
   };
 
   PostModel._getRandomValues = function (arr) {
@@ -744,16 +770,7 @@ var BlogModel = {};
   };
 
   BlogModel.all = function (blogObj) {
-    var i;
-    var key;
-    var blogs = [];
-    for (i = 0; i < localStorage.length; i += 1) {
-      key = localStorage.key(i);
-      if (key.startsWith("blog.")) {
-        blogs.push(BlogModel.get(key.replace("blog.", "")));
-      }
-    }
-    return blogs;
+    return _localStorageGetAll("blog.");
   };
 
   BlogModel._splitRepoBranch = function (repo, _branch) {
@@ -806,4 +823,7 @@ var BlogModel = {};
   PostModel._init();
   Post._init();
   Blog._init();
+
+  // deprecated
+  localStorage.removeItem("all");
 })();
