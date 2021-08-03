@@ -881,4 +881,24 @@ function _localStorageGetAll(prefix) {
 
   // deprecated
   localStorage.removeItem("all");
+
+  async function _init() {
+    var url = new URL(window.document.location);
+    // for testing in development
+    if ("localhost" === url.hostname) {
+      url.port = 80;
+      url.host = "foo.github.io";
+      url.pathname = "my-blissful-project";
+    }
+    if (!url.host.endsWith(".github.io")) {
+      return;
+    }
+    var user = url.host.split(".")[0];
+    var project = url.pathname.split("/").filter(Boolean)[0];
+    var repo = "https://github.com/" + user + "/" + project;
+    $('input[name="repo"]').value = repo;
+    var event = new Event("change");
+    $('input[name="repo"]').dispatchEvent(event);
+  }
+  _init();
 })();
