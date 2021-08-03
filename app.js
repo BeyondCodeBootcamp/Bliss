@@ -77,6 +77,13 @@ function _localStorageGetAll(prefix) {
       $('select[name="githost"]', $form).value = githost;
     }
     $('input[name="repo"]', $form).value = parts.repo;
+    var baseUrl = $('input[name="base_url"]', $form).value;
+    var baseParts;
+    if (!baseUrl && "github" === githost) {
+      baseParts = parts.repo.slice("https://".length).toLowerCase().split("/");
+      baseUrl = "https://" + baseParts[1] + ".github.io/" + baseParts[2];
+    }
+    $('input[name="base_url"]', $form).value = baseUrl;
 
     BlogModel.save({
       repo: parts.repo,

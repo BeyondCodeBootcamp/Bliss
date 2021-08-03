@@ -119,7 +119,7 @@
               style="width: 90%"
               name="content"
               cols="28"
-              rows="22"
+              rows="15"
               placeholder="# Magnificent Title
 
 Hello, World!
@@ -193,12 +193,14 @@ Best kept 50 - 155 characters."
                 <option value="gitlab" disabled>GitLab (see #337038)</option>
               </select>
             </label>
-            <label style="width: 380px"
+          </fieldset>
+          <fieldset>
+            <label style="width: 580px"
               >Repo:
               <input
                 type="url"
                 name="repo"
-                style="width: 85%"
+                style="width: 92%"
                 list="-repos"
                 autocomplete="off"
                 onchange="Blog.serialize(event)"
@@ -237,7 +239,9 @@ Best kept 50 - 155 characters."
                 <option value="zola">Zola</option>
               </select>
             </label>
-            <label style="width: 390px"
+          </fieldset>
+          <fieldset>
+            <label style="width: 500px"
               >Base URL:
               <input
                 name="base_url"
