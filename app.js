@@ -667,7 +667,6 @@ function _localStorageGetAll(prefix) {
     var all = PostModel.ids();
     if (!all.includes(post.uuid)) {
       all.push(post.uuid);
-      localStorage.setItem("all", all.join(PostModel._uuid_sep).trim());
     }
 
     localStorage.setItem(
