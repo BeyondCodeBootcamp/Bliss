@@ -134,7 +134,7 @@ function _localStorageGetAll(prefix) {
       timezone
     ).toISOString();
     */
-    post.updated = post.updated || post.created;
+    post.updated = XTZ.toTimeZone(new Date(), post.timezone).toISOString();
 
     var text = $('textarea[name="content"]').value;
     post.title = PostModel._parseTitle(text);
@@ -184,7 +184,7 @@ function _localStorageGetAll(prefix) {
     if (post._previous.title !== post.title) {
       var cell = $('input[name="uuid"][value="' + post.uuid + '"]');
       var row = cell.closest("tr");
-      row.outerHTML = Post._renderRow(post.uuid);
+      row.outerHTML = Post._renderRow(post);
       post._previous.title = post.title;
     }
     Post._rawPreview(post);
@@ -245,7 +245,12 @@ function _localStorageGetAll(prefix) {
       uuids = PostModel.ids();
     }
 
-    var items = uuids.map(Post._renderRow);
+    var items = uuids
+      .map(PostModel.getOrCreate)
+      .sort(function (a, b) {
+        return new Date(a.updated).valueOf() - new Date(b.updated).valueOf();
+      })
+      .map(Post._renderRow);
     if (!items.length) {
       items.push(
         Post._rowTmpl
@@ -267,8 +272,7 @@ function _localStorageGetAll(prefix) {
     $(".js-items").innerHTML = items.join("\n");
   };
 
-  Post._renderRow = function (uuid) {
-    var post = PostModel.getOrCreate(uuid);
+  Post._renderRow = function (post) {
     var tmpl = Post._rowTmpl
       .replace(/ hidden/g, "")
       .replace(
@@ -368,12 +372,13 @@ function _localStorageGetAll(prefix) {
         "---",
         'title: "{{title}}"',
         'description: "{{description}}"',
-        'timezone: "{{timezone}}"',
         'date: "{{created}}"',
-        'lastmod: "{{updated}}"',
-        "uuid: {{uuid}}",
-        "categories:",
-        "  - Web Development",
+        'timezone: "{{timezone}}"',
+        //'lastmod: "{{updated}}"', // GitInfo handles this
+        //"uuid: {{uuid}}",
+        'utterences_term: "{{title}}"',
+        "categories: []",
+        //"  - Web Development",
         "---",
       ],
     },
