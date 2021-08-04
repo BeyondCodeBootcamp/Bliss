@@ -376,7 +376,7 @@ function _localStorageGetAll(prefix) {
         'timezone: "{{timezone}}"',
         //'lastmod: "{{updated}}"', // GitInfo handles this
         //"uuid: {{uuid}}",
-        'utterences_term: "{{title}}"',
+        'utterances_term: "{{title}}"',
         "categories: []",
         //"  - Web Development",
         "---",
