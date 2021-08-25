@@ -136,28 +136,40 @@ function _localStorageGetAll(prefix) {
     */
     post.updated = XTZ.toTimeZone(new Date(), post.timezone).toISOString();
 
-    var text = $('textarea[name="content"]').value;
+    var text = $('textarea[name="content"]').value.trim();
     post.title = PostModel._parseTitle(text);
 
     // skip the first line of text (which was the title)
-    post.content = text
-      .split(/[\r\n]/g)
-      .slice(1)
-      .join("\n")
-      .trim();
+    var lines = text.split(/[\r\n]/g);
 
-    var inputDescription = $('textarea[name="description"]').value;
-    if (inputDescription && post.description) {
-      if (!post._dirtyDescription) {
-        post._dirtyDescription = post.description !== inputDescription;
+    post.content = lines.slice(1).join("\n").trim();
+    // without Title
+    lines = post.content.split(/[\r\n]/g);
+    if (lines[0].startsWith(">")) {
+      // new way
+      post.description = lines[0].slice(1).trim();
+      // don't trim this time (i.e. bad code block)
+      // TODO check that it starts with alpha - not ``` or - or [link](./), for example
+      post.content = lines
+        .slice(1)
+        .join("\n")
+        .replace(/^[\n\r]+/, "");
+      $('textarea[name="description"]').value = post.description;
+    } else {
+      // old way
+      var inputDescription = $('textarea[name="description"]').value;
+      if (inputDescription && post.description) {
+        if (!post._dirtyDescription) {
+          post._dirtyDescription = post.description !== inputDescription;
+        }
+      } else {
+        post._dirtyDescription = false;
       }
-    } else {
-      post._dirtyDescription = false;
-    }
-    if (!post._dirtyDescription) {
-      post.description = PostModel._parseDescription(post);
-    } else {
-      post.description = inputDescription;
+      if (!post._dirtyDescription) {
+        post.description = PostModel._parseDescription(post);
+      } else {
+        post.description = inputDescription;
+      }
     }
 
     PostModel.save(post);
@@ -774,20 +786,34 @@ function _localStorageGetAll(prefix) {
 
   PostModel._parseTitle = function (text) {
     // split on newlines and grab the first as title
-    var title = text.split(/[\r\n]/g)[0];
-    if (title.includes("#")) {
-      title = title.split("#").slice(1).join("#").trim();
+    var title = text
+      .trim()
+      .split(/[\r\n]/g)[0]
+      .trim();
+    // "\n\n    #    #1 Title #2 Article \n\n\n blah blah blah \n blah"
+    if (title.trim().startsWith("#")) {
+      title = title.replace(/^#*\s*/, "");
     }
     return title;
   };
 
   PostModel._parseDescription = function (post) {
-    var description = post.content.slice(0, 152);
-    if (152 === description.length) {
-      description = description.slice(0, description.lastIndexOf(" "));
-      description += "...";
+    // 152 is the max recommended length for meta description
+    const MAX_META_DESC_LEN = 152;
+
+    // Note: content has had the Title stripped by now
+    // (and this won't even be called if the description was indicated with '>')
+    var desc =
+      post.content.split(/[\r\n]/g).filter(function (line) {
+        // filter spaces, newlines, etc
+        return line.trim();
+      })[0] || "";
+    desc = desc.trim().slice(0, MAX_META_DESC_LEN);
+    if (MAX_META_DESC_LEN === desc.length) {
+      desc = desc.slice(0, desc.lastIndexOf(" "));
+      desc += "...";
     }
-    return description;
+    return desc;
   };
 
   /**
