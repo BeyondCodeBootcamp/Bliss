@@ -702,6 +702,7 @@ function _localStorageGetAll(prefix) {
         _githost: post._githost,
         _gitbranch: post._gitbranch,
         _repo: post._repo,
+        sync_id: post.sync_id,
       })
     );
     localStorage.setItem("post." + post.uuid + ".data", post.content);
@@ -914,7 +915,8 @@ function _localStorageGetAll(prefix) {
 
   function _initFromTemplate() {
     var pathname = window.document.location.hash.slice(1);
-    var url = new URL("https://example.com/" + pathname);
+    // base url doesn't matter - we're just using this for parsing
+    var url = new URL("https://ignore.me/" + pathname);
     var query = {};
     url.searchParams.forEach(function (val, key) {
       query[key] = val || true; // ght = true
