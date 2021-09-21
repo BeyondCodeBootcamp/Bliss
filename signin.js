@@ -6,6 +6,8 @@ function $$(sel, el) {
   return (el || document).querySelectorAll(sel);
 }
 
+var Encraption = {};
+
 (async function () {
   "use strict";
 
@@ -40,7 +42,7 @@ function $$(sel, el) {
     return await resp.json().catch(die);
   }
 
-  async function importKey(key64) {
+  Encraption.importKey = async function importKey(key64) {
     let crypto = window.crypto;
     let usages = ["encrypt", "decrypt"];
     let extractable = false;
@@ -53,7 +55,7 @@ function $$(sel, el) {
       extractable,
       usages
     );
-  }
+  };
 
   function base64ToBuffer(base64) {
     function binaryStringToBuffer(binstr) {
@@ -90,10 +92,9 @@ function $$(sel, el) {
     return btoa(binstr);
   }
 
-  async function encryptObj(obj, key) {
+  Encraption.encryptObj = async function encryptObj(obj, key) {
     var crypto = window.crypto;
     var ivLen = 16; // the IV is always 16 bytes
-    console.log(key);
 
     function joinIvAndData(iv, data) {
       var buf = new Uint8Array(iv.length + data.length);
@@ -134,9 +135,9 @@ function $$(sel, el) {
     //return _encrypt(base64ToBuffer(b64), key);
     let u8 = new TextEncoder().encode(JSON.stringify(obj));
     return await _encrypt(u8, key);
-  }
+  };
 
-  async function decrypt64(b64, key) {
+  Encraption.decrypt64 = async function decrypt64(b64, key) {
     var crypto = window.crypto;
     var ivLen = 16; // the IV is always 16 bytes
 
@@ -172,7 +173,7 @@ function $$(sel, el) {
         });
     }
     return _decrypt(base64ToBuffer(b64), key);
-  }
+  };
 
   async function completeOauth2SignIn(baseUrl, query) {
     // nix token from browser history
@@ -181,6 +182,9 @@ function $$(sel, el) {
       document.title,
       window.location.pathname + window.location.search
     );
+    // TODO fire hash change event synthetically via the DOM?
+    console.log("[DEBUG] 2 replaced history state");
+    Tab._hashChange();
 
     // Show the token for easy capture
     console.info("access_token", query.access_token);
@@ -288,7 +292,7 @@ function $$(sel, el) {
     // Use MEGA-style https://site.com/invite#priv ?
     // hash(priv) => pub
     let key64 = localStorage.getItem("bliss:enc-key");
-    let key = await importKey(key64).catch(showError);
+    let key = await Encraption.importKey(key64).catch(showError);
 
     function showError(err) {
       console.error(err);
@@ -296,13 +300,13 @@ function $$(sel, el) {
     }
     if (!key) {
       if (!items.length) {
-        let rawKeyBuf = crypto.getRandomValues(new Uint8Array(32));
+        let rawKeyBuf = crypto.getRandomValues(new Uint8Array(16));
         key64 = bufferToBase64(rawKeyBuf);
         localStorage.setItem("bliss:enc-key", key64);
       }
       while (items.length && !key64) {
         key64 = window.prompt("What's your encryption key?", "");
-        key = await importKey(key64).catch(showError);
+        key = await Encraption.importKey(key64).catch(showError);
         // TODO try to decrypt
       }
     }
@@ -329,7 +333,7 @@ function $$(sel, el) {
       // TODO decide which key to use (once we have shared projects)
       let post;
       try {
-        post = await decrypt64(data.encrypted, key);
+        post = await Encraption.decrypt64(data.encrypted, key);
       } catch (e) {
         console.warn("Could not decrypt");
         console.warn(data);
@@ -380,7 +384,9 @@ function $$(sel, el) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            data: JSON.stringify({ encrypted: await encryptObj(post, key) }),
+            data: JSON.stringify({
+              encrypted: await Encraption.encryptObj(post, key),
+            }),
           }),
         })
         .catch(die);
