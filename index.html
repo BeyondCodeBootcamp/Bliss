@@ -31,6 +31,9 @@
     <script src="https://unpkg.com/ajquery@2.1/ajquery.min.js"></script>
     <script src="https://unpkg.com/xtz@1.0/xtz.min.js"></script>
     <style>
+      * {
+        box-sizing: border-box;
+      }
       nav {
         margin-bottom: 0.8rem;
       }
@@ -41,11 +44,26 @@
       main {
         padding-top: 0;
       }
+      form {
+        width: 100%;
+      }
+      textarea {
+        width: 100%;
+      }
       fieldset {
         border-style: none;
       }
       fieldset label {
         display: inline-block;
+      }
+      small button {
+        font-size: smaller;
+        margin: 0;
+        padding: 0.25rem;
+      }
+      a.active {
+        text-decoration: none;
+        color: inherit;
       }
     </style>
   </head>
@@ -59,12 +77,13 @@
         </a>
         <h1>Bliss: Blog, Easy As Gist</h1>
         <ul>
-          <li>Post</li>
+          <li><a class="js-tab-post active" data-href="#post">Post</a></li>
+          <li><a class="js-tab-settings" data-href="#settings">Settings</a></li>
           <li class="js-sign-in-github">
             <a class="js-github-oauth2-url">GitHub Sign In</a>
           </li>
           <li class="js-logout" hidden>
-            <button>Logout</button>
+            <small><button>Logout</button></small>
           </li>
         </ul>
       </nav>
@@ -80,7 +99,7 @@
         <br />
       </p>
     </header>
-    <main>
+    <main data-ui="post">
       <section>
         <!-- TODO grid flex list thing??  -->
         <table>
@@ -276,6 +295,31 @@ Best kept 50 - 155 characters."
         </pre>
       </section>
     </main>
+    <main data-ui="settings">
+      <section>
+        <form>
+          <label
+            >Passphrase
+            <textarea
+              class="js-passphrase"
+              rows="4"
+              onchange="Settings.savePassphrase(event)"
+              onkeyup="Settings.savePassphrase(event)"
+            >
+[hidden]</textarea
+            >
+          </label>
+          <span class="js-hint" style="color: red"></span>
+          <label>
+            <small
+              ><button type="button" onclick="Settings.togglePassphrase(event)">
+                Show
+              </button></small
+            >
+          </label>
+        </form>
+      </section>
+    </main>
     <footer>
       <hr />
       <p>
@@ -287,6 +331,7 @@ Best kept 50 - 155 characters."
     </footer>
     <script src="./env.js"></script>
     <script src="./app.js"></script>
+    <script src="./passphrase.js"></script>
     <script src="./auth3000.js"></script>
     <script src="./signin.js"></script>
   </body>

@@ -4,6 +4,83 @@ var PostModel = {};
 var Blog = {};
 var BlogModel = {};
 
+var Tab = {};
+
+var Settings = {};
+
+function base64ToBuffer(b64) {
+  let binstr = atob(b64);
+  let arr = binstr.split("").map(function (ch) {
+    return ch.charCodeAt();
+  });
+  return Uint8Array.from(arr);
+}
+
+function bufferToBase64(buf) {
+  var binstr = buf
+    .reduce(function (arr, ch) {
+      arr.push(String.fromCharCode(ch));
+      return arr;
+    }, [])
+    .join("");
+  return btoa(binstr);
+}
+
+Settings.togglePassphrase = async function (ev) {
+  let pass = ev.target
+    .closest("form")
+    .querySelector(".js-passphrase")
+    .value.trim();
+  if ("[hidden]" != pass) {
+    ev.target.closest("form").querySelector("button").innerText = "Show";
+    ev.target.closest("form").querySelector(".js-passphrase").value =
+      "[hidden]";
+    return;
+  }
+
+  let b64 = localStorage.getItem("bliss:enc-key") || "";
+  let bytes = base64ToBuffer(b64);
+  pass = await Passphrase.encode(bytes);
+
+  // TODO standardize controller container ma-bob
+  ev.target.closest("form").querySelector(".js-passphrase").value = pass;
+  ev.target.closest("form").querySelector("button").innerText = "Hide";
+};
+
+Settings.savePassphrase = async function (ev) {
+  let pass = ev.target
+    .closest("form")
+    .querySelector(".js-passphrase")
+    .value.trim()
+    .split(/[\s,:-]+/)
+    .filter(Boolean)
+    .join(" ");
+
+  let bytes;
+  try {
+    bytes = await Passphrase.decode(pass);
+  } catch (e) {
+    ev.target.closest("form").querySelector(".js-hint").innerText = e.message;
+    return;
+  }
+  ev.target.closest("form").querySelector(".js-hint").innerText = "";
+
+  let new64 = bufferToBase64(bytes);
+
+  let current64 = localStorage.getItem("bliss:enc-key");
+  if (current64 === new64) {
+    return;
+  }
+
+  let isoNow = new Date().toISOString();
+  let oldPass = await Passphrase.encode(base64ToBuffer(current64));
+  localStorage.setItem(`bliss:enc-key:backup:${isoNow}`, oldPass);
+
+  localStorage.setItem("bliss:enc-key", new64);
+  ev.target.closest("form").querySelector(".js-hint").innerText =
+    "Saved New Passphrase!";
+};
+
 function _localStorageGetIds(prefix, suffix) {
   var i;
   var key;
@@ -44,6 +121,61 @@ function _localStorageGetAll(prefix) {
   var $ = window.$;
   var $$ = window.$$;
   var localStorage = window.localStorage;
+
+  Tab._init = function () {
+    window.addEventListener("hashchange", Tab._hashChange, false);
+    if ("" !== location.hash.slice(1)) {
+      Tab._hashChange();
+      return;
+    }
+
+    Tab._setToFirst();
+  };
+
+  Tab._setToFirst = function () {
+    let name = $$("[data-ui]")[0].dataset.ui;
+    location.hash = `#${name}`;
+    console.log("[DEBUG] set hash to", location.hash);
+  };
+
+  Tab._hashChange = function () {
+    let name = location.hash.slice(1);
+    if (!name) {
+      Tab._setToFirst();
+      return;
+    }
+    if (!$$(`[data-ui="${name}"]`).length) {
+      console.warn("something else took over the hash routing:", name);
+      return;
+    }
+
+    // TODO requestAnimationFrame
+
+    // switch to the visible tab
+    $$("[data-ui]").forEach(function ($tabBody, i) {
+      let tabName = $tabBody.dataset.ui;
+
+      if (name !== tabName) {
+        $tabBody.hidden = true;
+        return;
+      }
+
+      let $tabLink = $(`[data-href="#${name}"]`);
+      $tabLink.classList.add("active");
+      $tabLink.removeAttribute("href");
+      $tabBody.hidden = false;
+    });
+
+    // switch to the visible tab
+    $$("a[data-href]").forEach(function ($tabLink) {
+      let tabName = $tabLink.dataset.href.slice(1);
+      if (name === tabName) {
+        return;
+      }
+      $tabLink.classList.remove("active");
+      $tabLink.href = `#${tabName}`;
+    });
+  };
 
   Blog.serialize = function (ev) {
     ev.stopPropagation();
@@ -906,6 +1038,7 @@ function _localStorageGetAll(prefix) {
     PostModel._current = PostModel.getOrCreate(localStorage.getItem("current"));
   };
 
+  Tab._init();
   PostModel._init();
   Post._init();
   Blog._init();
@@ -943,6 +1076,8 @@ function _localStorageGetAll(prefix) {
 
     var hashless = window.document.location.href.split("#")[0];
     history.replaceState({}, document.title, hashless);
+    console.log("[DEBUG] replaced history state", hashless);
+    Tab._setToFirst();
   }
   _initFromTemplate();
 })();
