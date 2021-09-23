@@ -278,7 +278,7 @@ var Encraption = {};
     );
 
     let resp = await window
-      .fetch(baseUrl + "/api/dummy?since=" + lastSync.toISOString(), {
+      .fetch(baseUrl + "/api/user/doc?since=" + lastSync.toISOString(), {
         method: "GET",
         headers: {
           Authorization: "Bearer " + (result.id_token || result.access_token),
@@ -368,37 +368,57 @@ var Encraption = {};
 
     // TODO handle offline case: if new things have not been synced, sync them
 
-    Post._saveHook = async function (post) {
-      if (post.sync_id) {
-        console.warn("can't update items yet");
-        return;
-      }
-      post._type = "post";
-
+    async function docCreate() {
       let token = result.id_token || result.access_token;
-      let resp = await window
-        .fetch(baseUrl + "/api/dummy", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            data: JSON.stringify({
-              encrypted: await Encraption.encryptObj(post, key),
-            }),
+      let resp = await window.fetch(baseUrl + "/api/user/doc", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          data: JSON.stringify({
+            encrypted: await Encraption.encryptObj(post, key),
           }),
-        })
-        .catch(die);
-      post.sync_id = await resp.json().uuid;
-      if (!result.id_token && !result.access_token) {
+        }),
+      });
+      return resp.json();
+    }
+    async function docUpdate(post) {
+      let token = result.id_token || result.access_token;
+      let resp = await window.fetch(`${baseUrl}/api/user/doc/${post.sync_id}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          data: JSON.stringify({
+            encrypted: await Encraption.encryptObj(post, key),
+          }),
+        }),
+      });
+      return resp.json();
+    }
+    Post._syncHook = async function (post) {
+      post._type = "post";
+      if (!post.sync_id) {
+        let resp = await docCreate(post);
+        post.sync_id = resp.uuid;
+        return post;
       }
+
+      // TODO update last updated at?
+      await docUpdate(post);
+      return post;
     };
 
+    // update all existing posts
     await PostModel.ids().reduce(async function (p, id) {
       await p;
       let post = PostModel.getOrCreate(id);
-      await Post._saveHook(post);
+      post = await Post._syncHook(post).catch(die);
+      PostModel.save(post);
     }, Promise.resolve());
   }
 
