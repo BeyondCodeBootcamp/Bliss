@@ -183,11 +183,10 @@ var Encraption = {};
       window.location.pathname + window.location.search
     );
     // TODO fire hash change event synthetically via the DOM?
-    console.log("[DEBUG] 2 replaced history state");
     Tab._hashChange();
 
     // Show the token for easy capture
-    console.info("access_token", query.access_token);
+    //console.debug("access_token", query.access_token);
 
     if ("github.com" === query.issuer) {
       // TODO this is moot. We could set the auth cookie at time of redirect
@@ -207,8 +206,8 @@ var Encraption = {};
         .catch(die);
       let result = await resp.json().catch(die);
 
-      console.info("Our bespoken token(s):");
-      console.info(result);
+      //console.debug("Our bespoken token(s):");
+      //console.debug(result);
 
       await doStuffWithUser(result);
     }
@@ -253,8 +252,8 @@ var Encraption = {};
     }
 
     let result = await attemptRefresh();
-    console.info("Refresh Token: (may be empty)");
-    console.info(result);
+    //console.debug("Refresh Token: (may be empty)");
+    //console.debug(result);
 
     if (result.id_token || result.access_token) {
       await doStuffWithUser(result);
@@ -267,18 +266,23 @@ var Encraption = {};
   }
 
   async function doStuffWithUser(result) {
+    const ZERO_DATE = "1970-01-01:T00:00:00.000Z";
+
     if (!result.id_token && !result.access_token) {
       window.alert("No token, something went wrong.");
       return;
     }
     $(".js-logout").hidden = false;
 
-    let lastSync = new Date(
-      parseInt(localStorage.getItem("bliss:last-sync"), 10) || 0
+    let lastSyncDown = new Date(
+      parseInt(localStorage.getItem("bliss:last-sync-down"), 10) || 0
+    );
+    let lastSyncUp = new Date(
+      parseInt(localStorage.getItem("bliss:last-sync-up"), 10) || 0
     );
 
     let resp = await window
-      .fetch(baseUrl + "/api/user/doc?since=" + lastSync.toISOString(), {
+      .fetch(baseUrl + "/api/user/doc?since=" + lastSyncDown.toISOString(), {
         method: "GET",
         headers: {
           Authorization: "Bearer " + (result.id_token || result.access_token),
@@ -286,8 +290,8 @@ var Encraption = {};
       })
       .catch(die);
     let items = await resp.json().catch(die);
-    console.info("Items:");
-    console.info(items);
+    //console.debug("Items:");
+    //console.debug(items);
 
     // Use MEGA-style https://site.com/invite#priv ?
     // hash(priv) => pub
@@ -331,40 +335,46 @@ var Encraption = {};
       }
 
       // TODO decide which key to use (once we have shared projects)
-      let post;
+      let syncedPost;
       try {
-        post = await Encraption.decrypt64(data.encrypted, key);
+        syncedPost = await Encraption.decrypt64(data.encrypted, key);
       } catch (e) {
         console.warn("Could not decrypt");
         console.warn(data);
         console.warn(e);
         continue;
       }
-      if (post._type && "post" !== post._type) {
-        console.warn("couldn't handle type", post._type);
-        console.warn(post);
+      if (syncedPost._type && "post" !== syncedPost._type) {
+        console.warn("couldn't handle type", syncedPost._type);
+        console.warn(syncedPost);
         continue;
       }
 
-      console.log("[DEBUG]", lastSync, lastSync.valueOf());
-      console.log(
-        "[DEBUG]",
-        item.updated_at,
-        new Date(item.updated_at).valueOf()
-      );
-      if (lastSync.valueOf() < new Date(item.updated_at).valueOf()) {
-        lastSync = new Date(item.updated_at);
+      if (lastSyncDown.valueOf() < new Date(item.updated_at).valueOf()) {
+        // updated once in localStorage at the end
+        lastSyncDown = new Date(item.updated_at);
       }
 
-      post.sync_id = item.uuid;
-      post.synced_at = item.updated_at;
-      // TODO conflict resolution if this has been updated more recently
-      console.log("decrypted", post.uuid);
-      console.log(post);
-      PostModel.save(post);
+      let localPost = PostModel.get(syncedPost.uuid);
+      if (localPost) {
+        // localPost is guaranteed to have a sync_id by all rational logic
+        let localUpdated = new Date(localPost.updated || ZERO_DATE).valueOf();
+        let syncedUpdated = new Date(syncedPost.updated).valueOf();
+        if (localUpdated > syncedUpdated) {
+          PostModel.saveVersion(syncedPost);
+          console.debug(
+            "Choosing winner wins strategy: local, more recent post is kept; older, synced post saved as alternate version."
+          );
+          continue;
+        }
+      }
+
+      // TODO don't resave items that haven't changed?
+      syncedPost.sync_id = item.uuid;
+      syncedPost.synced_at = item.updated_at;
+      PostModel.save(syncedPost);
     }
-    console.log("[DEBUG]", lastSync, lastSync.valueOf());
-    localStorage.setItem("bliss:last-sync", lastSync.valueOf());
+    localStorage.setItem("bliss:last-sync-down", lastSyncDown.valueOf());
 
     // TODO handle offline case: if new things have not been synced, sync them
 
@@ -382,7 +392,8 @@ var Encraption = {};
           }),
         }),
       });
-      return resp.json();
+      let body = await resp.json();
+      return body;
     }
     async function docUpdate(post) {
       let token = result.id_token || result.access_token;
@@ -398,28 +409,56 @@ var Encraption = {};
           }),
         }),
       });
-      return resp.json();
+      let body = await resp.json();
+      return body;
     }
     Post._syncHook = async function (post) {
+      // Note: syncHook MUST be called on posts in ascending `updated_at` order
+      // (otherwise drafts will be older than `lastSyncUp` and be skipped / lost)
       post._type = "post";
+
+      let resp;
       if (!post.sync_id) {
-        let resp = await docCreate(post);
-        post.sync_id = resp.uuid;
-        return post;
+        resp = await docCreate(post);
+      } else if (
+        new Date(post.updated || ZERO_DATE).valueOf() > lastSyncUp.valueOf()
+      ) {
+        resp = await docUpdate(post);
+      } else {
+        return;
       }
 
-      // TODO update last updated at?
-      await docUpdate(post);
-      return post;
+      if (!resp.uuid || !new Date(resp.updated_at).valueOf()) {
+        // TODO
+        throw new Error("Sync was not successful");
+      }
+
+      // Don't do this. Keep local `updated` for local sync logic
+      //post.updated = resp.updated_at.toISOString();
+      if (!post.sync_id) {
+        post.sync_id = resp.uuid;
+        PostModel.save(post);
+      }
+
+      lastSyncUp = new Date(post.updated);
+      localStorage.setItem("bliss:last-sync-up", lastSyncUp.valueOf());
     };
 
     // update all existing posts
-    await PostModel.ids().reduce(async function (p, id) {
-      await p;
-      let post = PostModel.getOrCreate(id);
-      post = await Post._syncHook(post).catch(die);
-      PostModel.save(post);
-    }, Promise.resolve());
+    await PostModel.ids()
+      .map(function (id) {
+        // get posts rather than ids
+        return PostModel.getOrCreate(id);
+      })
+      .sort(function (a, b) {
+        let aDate = new Date(a.updated || ZERO_DATE).valueOf();
+        let bDate = new Date(b.updated || ZERO_DATE).valueOf();
+        return aDate - bDate;
+      })
+      .reduce(async function (p, post) {
+        await p;
+        await Post._syncHook(post).catch(die);
+      }, Promise.resolve());
   }
 
   init().catch(function (err) {
