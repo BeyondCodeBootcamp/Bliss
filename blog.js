@@ -4,114 +4,6 @@ var PostModel = {};
 var Blog = {};
 var BlogModel = {};
 
-var Tab = {};
-
-var Settings = {};
-
-function base64ToBuffer(b64) {
-  let binstr = atob(b64);
-  let arr = binstr.split("").map(function (ch) {
-    return ch.charCodeAt();
-  });
-  return Uint8Array.from(arr);
-}
-
-function bufferToBase64(buf) {
-  var binstr = buf
-    .reduce(function (arr, ch) {
-      arr.push(String.fromCharCode(ch));
-      return arr;
-    }, [])
-    .join("");
-  return btoa(binstr);
-}
-
-Settings.togglePassphrase = async function (ev) {
-  let pass = ev.target
-    .closest("form")
-    .querySelector(".js-passphrase")
-    .value.trim();
-  if ("[hidden]" != pass) {
-    ev.target.closest("form").querySelector("button").innerText = "Show";
-    ev.target.closest("form").querySelector(".js-passphrase").value =
-      "[hidden]";
-    return;
-  }
-
-  let b64 = localStorage.getItem("bliss:enc-key") || "";
-  let bytes = base64ToBuffer(b64);
-  pass = await Passphrase.encode(bytes);
-
-  // TODO standardize controller container ma-bob
-  ev.target.closest("form").querySelector(".js-passphrase").value = pass;
-  ev.target.closest("form").querySelector("button").innerText = "Hide";
-};
-
-Settings.savePassphrase = async function (ev) {
-  let pass = ev.target
-    .closest("form")
-    .querySelector(".js-passphrase")
-    .value.trim()
-    .split(/[\s,:-]+/)
-    .filter(Boolean)
-    .join(" ");
-
-  let bytes;
-  try {
-    bytes = await Passphrase.decode(pass);
-  } catch (e) {
-    ev.target.closest("form").querySelector(".js-hint").innerText = e.message;
-    return;
-  }
-  ev.target.closest("form").querySelector(".js-hint").innerText = "";
-
-  let new64 = bufferToBase64(bytes);
-
-  let current64 = localStorage.getItem("bliss:enc-key");
-  if (current64 === new64) {
-    return;
-  }
-
-  let isoNow = new Date().toISOString();
-  let oldPass = await Passphrase.encode(base64ToBuffer(current64));
-  localStorage.setItem(`bliss:enc-key:backup:${isoNow}`, oldPass);
-
-  localStorage.setItem("bliss:enc-key", new64);
-  ev.target.closest("form").querySelector(".js-hint").innerText =
-    "Saved New Passphrase!";
-};
-
-function _localStorageGetIds(prefix, suffix) {
-  var i;
-  var key;
-  var ids = [];
-  for (i = 0; i < localStorage.length; i += 1) {
-    key = localStorage.key(i);
-    if (prefix && !key.startsWith(prefix)) {
-      continue;
-    }
-    if (suffix && !key.endsWith(suffix)) {
-      continue;
-    }
-    ids.push(key.slice(prefix.length).slice(0, -1 * suffix.length));
-  }
-  return ids;
-}
-
-function _localStorageGetAll(prefix) {
-  var i;
-  var key;
-  var items = [];
-  for (i = 0; i < localStorage.length; i += 1) {
-    key = localStorage.key(i);
-    if (!key.startsWith(prefix)) {
-      continue;
-    }
-    items.push(JSON.parse(localStorage.getItem(key)));
-  }
-  return items;
-}
-
 (async function () {
   "use strict";
 
@@ -122,60 +14,36 @@ function _localStorageGetAll(prefix) {
   var $$ = window.$$;
   var localStorage = window.localStorage;
 
-  Tab._init = function () {
-    window.addEventListener("hashchange", Tab._hashChange, false);
-    if ("" !== location.hash.slice(1)) {
-      Tab._hashChange();
-      return;
-    }
-
-    Tab._setToFirst();
-  };
-
-  Tab._setToFirst = function () {
-    let name = $$("[data-ui]")[0].dataset.ui;
-    location.hash = `#${name}`;
-    console.log("[DEBUG] set hash to", location.hash);
-  };
-
-  Tab._hashChange = function () {
-    let name = location.hash.slice(1);
-    if (!name) {
-      Tab._setToFirst();
-      return;
-    }
-    if (!$$(`[data-ui="${name}"]`).length) {
-      console.warn("something else took over the hash routing:", name);
-      return;
-    }
-
-    // TODO requestAnimationFrame
-
-    // switch to the visible tab
-    $$("[data-ui]").forEach(function ($tabBody, i) {
-      let tabName = $tabBody.dataset.ui;
-
-      if (name !== tabName) {
-        $tabBody.hidden = true;
-        return;
+  function _localStorageGetIds(prefix, suffix) {
+    var i;
+    var key;
+    var ids = [];
+    for (i = 0; i < localStorage.length; i += 1) {
+      key = localStorage.key(i);
+      if (prefix && !key.startsWith(prefix)) {
+        continue;
       }
-
-      let $tabLink = $(`[data-href="#${name}"]`);
-      $tabLink.classList.add("active");
-      $tabLink.removeAttribute("href");
-      $tabBody.hidden = false;
-    });
-
-    // switch to the visible tab
-    $$("a[data-href]").forEach(function ($tabLink) {
-      let tabName = $tabLink.dataset.href.slice(1);
-      if (name === tabName) {
-        return;
+      if (suffix && !key.endsWith(suffix)) {
+        continue;
       }
-      $tabLink.classList.remove("active");
-      $tabLink.href = `#${tabName}`;
-    });
-  };
+      ids.push(key.slice(prefix.length).slice(0, -1 * suffix.length));
+    }
+    return ids;
+  }
+
+  function _localStorageGetAll(prefix) {
+    var i;
+    var key;
+    var items = [];
+    for (i = 0; i < localStorage.length; i += 1) {
+      key = localStorage.key(i);
+      if (!key.startsWith(prefix)) {
+        continue;
+      }
+      items.push(JSON.parse(localStorage.getItem(key)));
+    }
+    return items;
+  }
 
   Blog.serialize = function (ev) {
     ev.stopPropagation();
@@ -770,9 +638,7 @@ function _localStorageGetAll(prefix) {
    */
   PostModel.getOrCreate = function (uuid) {
     // Meta
-    var post = JSON.parse(
-      localStorage.getItem("post." + uuid + ".meta") || "{}"
-    );
+    var post = PostModel.get(uuid) || {};
     post.uuid = uuid || PostModel._uuid();
     if (!post.timezone) {
       post.timezone = new Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -808,18 +674,39 @@ function _localStorageGetAll(prefix) {
     return post;
   };
 
+  /**
+   * @param {string} uuid
+   * @returns {BlissPost?}
+   */
+  PostModel.get = function (uuid) {
+    let json = localStorage.getItem("post." + uuid + ".meta");
+    if (!json) {
+      return null;
+    }
+    return JSON.parse(json);
+  };
+
   PostModel.ids = function () {
     return _localStorageGetIds("post.", ".meta");
   };
 
   PostModel.save = function (post) {
+    return PostModel._save(save, "");
+  };
+
+  PostModel.saveVersion = function (post) {
+    let d = new Date(post.updated || "1970-01-01T00:00:00.000Z");
+    return PostModel._save(save, ":version:" + d.toISOString());
+  };
+
+  PostModel._save = function (post, version) {
     var all = PostModel.ids();
     if (!all.includes(post.uuid)) {
       all.push(post.uuid);
     }
 
     localStorage.setItem(
-      "post." + post.uuid + ".meta",
+      "post." + post.uuid + ".meta" + version,
       JSON.stringify({
         title: post.title,
         description: post.description,
@@ -837,7 +724,7 @@ function _localStorageGetAll(prefix) {
         sync_id: post.sync_id,
       })
     );
-    localStorage.setItem("post." + post.uuid + ".data", post.content);
+    localStorage.setItem("post." + post.uuid + ".data" + version, post.content);
   };
 
   PostModel.delete = function (uuid) {
@@ -1037,47 +924,4 @@ function _localStorageGetAll(prefix) {
     // TODO XXX XXX
     PostModel._current = PostModel.getOrCreate(localStorage.getItem("current"));
   };
-
-  Tab._init();
-  PostModel._init();
-  Post._init();
-  Blog._init();
-
-  // deprecated
-  localStorage.removeItem("all");
-
-  function _initFromTemplate() {
-    var pathname = window.document.location.hash.slice(1);
-    // base url doesn't matter - we're just using this for parsing
-    var url = new URL("https://ignore.me/" + pathname);
-    var query = {};
-    url.searchParams.forEach(function (val, key) {
-      query[key] = val || true; // ght = true
-    });
-    if (!query.h && query.ght) {
-      query.h = "github.com";
-    }
-    if (!query.h || !query.o || !query.r) {
-      return;
-    }
-
-    // https://{host}/{owner}/{repo}#{branch}
-    var repoUrl = "https://" + query.h + "/" + query.o + "/" + query.r;
-    if (query.b) {
-      repoUrl += "#" + query.b;
-    }
-
-    if (query.ght) {
-      $('select[name="blog"]').value = "eon"; // TODO should be 'hugo'
-    }
-    $('input[name="repo"]').value = repoUrl;
-    var event = new Event("change");
-    $('input[name="repo"]').dispatchEvent(event);
-
-    var hashless = window.document.location.href.split("#")[0];
-    history.replaceState({}, document.title, hashless);
-    console.log("[DEBUG] replaced history state", hashless);
-    Tab._setToFirst();
-  }
-  _initFromTemplate();
 })();

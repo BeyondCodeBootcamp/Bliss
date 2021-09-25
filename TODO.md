@@ -1,8 +1,12 @@
 What's left?
 
-- [ ] Ability to show encryption key
-- [ ] Draft versioning (local?)
-- [ ] Update items
+- [x] Ability to show encryption key
+- [x] Update items
+- [x] NOT update items that are older than lastSyncUpdate
+- [x] Draft versioning (local?)
+- [x] General refactoring
+- [ ] Deleted things marked as null
+- [ ] Deleted things don't count against quotas
 - [ ] Mark items deleted
 - [ ] Count bytes
 - [ ] Paywall
