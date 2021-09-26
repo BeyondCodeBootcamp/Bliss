@@ -3,6 +3,7 @@ var Encoding = {};
 (function () {
   "use strict";
 
+  // TODO update unibabel.js
   Encoding.base64ToBuffer = function (b64) {
     let binstr = atob(b64);
     let arr = binstr.split("").map(function (ch) {

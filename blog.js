@@ -11,7 +11,7 @@ var BlogModel = {};
   // (just so everybody knows what I expect to use in here)
   var XTZ = window.XTZ;
   var $ = window.$;
-  var $$ = window.$$;
+  //var $$ = window.$$;
   var localStorage = window.localStorage;
 
   function _localStorageGetIds(prefix, suffix) {
@@ -57,7 +57,7 @@ var BlogModel = {};
 
     var dirty = false;
     try {
-      new URL(repo);
+      new URL(repo); // jshint ignore:line
     } catch (e) {
       // ignore
       // dirty, don't save
@@ -103,6 +103,7 @@ var BlogModel = {};
    * Post is the View
    *
    */
+  // Hit the New Draft button
   Post.create = function (ev) {
     ev.preventDefault();
     ev.stopPropagation();
@@ -111,16 +112,17 @@ var BlogModel = {};
     Post._renderRows();
   };
 
+  // Hit the save button (actually every key is the save button)
   Post.serialize = function (ev) {
     ev.preventDefault();
     ev.stopPropagation();
 
     Post._update(PostModel._current);
   };
+
+  // From form inputs to Model
   Post._serialize = function (post) {
     // TODO debounce with max time
-    var timezone = new Intl.DateTimeFormat().resolvedOptions().timeZone;
-    post.timezone = post.timezone || timezone;
 
     // TODO refactor
     post._gitbranch = $('input[name="gitbranch"]').value || "main";
@@ -134,9 +136,9 @@ var BlogModel = {};
       timezone
     ).toISOString();
     */
-    post.updated = XTZ.toTimeZone(new Date(), post.timezone).toISOString();
 
     var text = $('textarea[name="content"]').value.trim();
+    var inputDescription = $('textarea[name="description"]').value;
     post.title = PostModel._parseTitle(text);
 
     // skip the first line of text (which was the title)
@@ -154,10 +156,8 @@ var BlogModel = {};
         .slice(1)
         .join("\n")
         .replace(/^[\n\r]+/, "");
-      $('textarea[name="description"]').value = post.description;
     } else {
-      // old way
-      var inputDescription = $('textarea[name="description"]').value;
+      // old way (TODO remove)
       if (inputDescription && post.description) {
         if (!post._dirtyDescription) {
           post._dirtyDescription = post.description !== inputDescription;
@@ -171,6 +171,10 @@ var BlogModel = {};
         post.description = inputDescription;
       }
     }
+    $('textarea[name="description"]').value = post.description;
+
+    post = PostModel.normalize(post);
+    post.updated = XTZ.toTimeZone(new Date(), post.timezone).toISOString();
 
     PostModel.save(post);
   };
@@ -202,7 +206,7 @@ var BlogModel = {};
     Post._rawPreview(post);
   };
 
-  // From DB to form inputs
+  // From Model to form inputs
   Post.deserialize = function (ev) {
     ev.preventDefault();
     ev.stopPropagation();
@@ -632,23 +636,48 @@ var BlogModel = {};
     return PostModel._current;
   };
 
+  PostModel.normalize = function (post) {
+    if (!post.uuid) {
+      post.uuid = PostModel._uuid();
+    }
+    if (!post.title) {
+      // ignore
+    }
+    if (!post.description) {
+      // ignore
+    }
+    if (!post.content) {
+      // ignore
+    }
+
+    if (!post.slug) {
+      post.slug = PostModel._toSlug(post.title);
+    }
+
+    if (!post.timezone) {
+      post.timezone = new Intl.DateTimeFormat().resolvedOptions().timeZone;
+    }
+
+    let isoNow;
+    if (!post.created || !post.updated) {
+      isoNow = XTZ.toTimeZone(new Date(), post.timezone).toISOString();
+      if (!post.created) {
+        post.created = post.updated || isoNow;
+      }
+      if (!post.updated) {
+        post.updated = isoNow;
+      }
+    }
+    return post;
+  };
+
   /**
    * @param {string} uuid
    * @returns {BlissPost}
    */
   PostModel.getOrCreate = function (uuid) {
-    // Meta
     var post = PostModel.get(uuid) || {};
-    post.uuid = uuid || PostModel._uuid();
-    if (!post.timezone) {
-      post.timezone = new Intl.DateTimeFormat().resolvedOptions().timeZone;
-    }
-    if (!post.created) {
-      post.created = XTZ.toTimeZone(new Date(), post.timezone).toISOString();
-    }
-    if (!post.updated) {
-      post.updated = post.created;
-    }
+    post.uuid = uuid;
 
     // Content
     post.content = localStorage.getItem("post." + post.uuid + ".data") || "";
@@ -658,6 +687,10 @@ var BlogModel = {};
     if (!post.title) {
       post.title = localStorage.getItem(post.uuid + ".title") || "";
     }
+
+    // Meta / Normalize
+    post = PostModel.normalize(post);
+
     // TODO is there a better way to handle this?
     post._previous = { title: post.title };
 
@@ -691,23 +724,22 @@ var BlogModel = {};
   };
 
   PostModel.save = function (post) {
-    return PostModel._save(save, "");
+    // TODO how to not be leaky about PostModel / SyncModel
+    //return PostModel._save(post, "", xattrs = ['sync_id']);
+    return PostModel._save(post, "");
   };
 
   PostModel.saveVersion = function (post) {
     let d = new Date(post.updated || "1970-01-01T00:00:00.000Z");
-    return PostModel._save(save, ":version:" + d.toISOString());
+    return PostModel._save(post, ":version:" + d.toISOString());
   };
 
   PostModel._save = function (post, version) {
-    var all = PostModel.ids();
-    if (!all.includes(post.uuid)) {
-      all.push(post.uuid);
-    }
-
     localStorage.setItem(
       "post." + post.uuid + ".meta" + version,
       JSON.stringify({
+        // TODO draft: true|false,
+        // TODO unlisted: true|false,
         title: post.title,
         description: post.description,
         uuid: post.uuid,
@@ -715,16 +747,20 @@ var BlogModel = {};
         created: post.created,
         updated: post.updated,
         timezone: post.timezone,
+
         // TODO iterate over localStorage to upgrade
         blog_id: post._repo + "#" + post._gitbranch,
         _blog: post._blog,
         _githost: post._githost,
         _gitbranch: post._gitbranch,
         _repo: post._repo,
+
+        // for syncing
         sync_id: post.sync_id,
       })
     );
     localStorage.setItem("post." + post.uuid + ".data" + version, post.content);
+    return post;
   };
 
   PostModel.delete = function (uuid) {

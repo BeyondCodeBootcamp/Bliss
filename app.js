@@ -3,12 +3,15 @@ var Settings = {};
 (async function () {
   "use strict";
 
+  let Passphrase = window.Passphrase;
+  let Encoding = window.Encoding;
+
   Settings.togglePassphrase = async function (ev) {
     let pass = ev.target
       .closest("form")
       .querySelector(".js-passphrase")
       .value.trim();
-    if ("[hidden]" != pass) {
+    if ("[hidden]" !== pass) {
       ev.target.closest("form").querySelector("button").innerText = "Show";
       ev.target.closest("form").querySelector(".js-passphrase").value =
         "[hidden]";
@@ -25,7 +28,7 @@ var Settings = {};
   };
 
   Settings.savePassphrase = async function (ev) {
-    let pass = ev.target
+    let newPass = ev.target
       .closest("form")
       .querySelector(".js-passphrase")
       .value.trim()
@@ -35,7 +38,7 @@ var Settings = {};
 
     let bytes;
     try {
-      bytes = await Passphrase.decode(pass);
+      bytes = await Passphrase.decode(newPass);
     } catch (e) {
       ev.target.closest("form").querySelector(".js-hint").innerText = e.message;
       return;
@@ -44,16 +47,14 @@ var Settings = {};
 
     let new64 = Encoding.bufferToBase64(bytes);
 
+    let isoNow = new Date().toISOString();
     let current64 = localStorage.getItem("bliss:enc-key");
     if (current64 === new64) {
       return;
     }
 
-    let isoNow = new Date().toISOString();
-    let oldPass = await Passphrase.encode(base64ToBuffer(current64));
-    localStorage.setItem(`bliss:enc-key:backup:${isoNow}`, oldPass);
-
     localStorage.setItem("bliss:enc-key", new64);
+    localStorage.setItem(`bliss:enc-key:backup:${isoNow}`, newPass);
     ev.target.closest("form").querySelector(".js-hint").innerText =
       "Saved New Passphrase!";
   };
@@ -61,6 +62,12 @@ var Settings = {};
 
 (async function () {
   "use strict";
+
+    let $ = window.$;
+  let Tab = window.Tab;
+  let PostModel = window.PostModel;
+  let Post = window.Post;
+  let Blog = window.Blog;
 
   Tab._init();
   PostModel._init();
