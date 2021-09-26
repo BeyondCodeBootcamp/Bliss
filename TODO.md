@@ -5,9 +5,18 @@ What's left?
 - [x] NOT update items that are older than lastSyncUpdate
 - [x] Draft versioning (local?)
 - [x] General refactoring
-- [ ] Deleted things marked as null
-- [ ] Deleted things don't count against quotas
-- [ ] Mark items deleted
+- [x] can't save encryption key when none is present
+- [x] shouldn't complain about invalid non-key
+- [x] update UI when syncing posts
+- [ ] don't sync Empty / Untitled
 - [ ] Count bytes
 - [ ] Paywall
-- [ ] Stripe Payments
+- [ ] Deleted things marked as null
+- [ ] Deleted things don't count against quotas
+- [ ] re-key library
+- [ ] Fine-tuned refactoring
+- [ ] Payments
+  - [ ] Paypal
+  - [ ] anonymous, not stripe
+  - [ ] Apple, Google, Amazon, etc
+- [ ] Hash'n'Cache assets
