@@ -1,22 +1,27 @@
 What's left?
 
-- [x] Ability to show encryption key
-- [x] Update items
-- [x] NOT update items that are older than lastSyncUpdate
-- [x] Draft versioning (local?)
-- [x] General refactoring
-- [x] can't save encryption key when none is present
-- [x] shouldn't complain about invalid non-key
-- [x] update UI when syncing posts
-- [ ] don't sync Empty / Untitled
-- [ ] Count bytes
-- [ ] Paywall
-- [ ] Deleted things marked as null
-- [ ] Deleted things don't count against quotas
-- [ ] re-key library
-- [ ] Fine-tuned refactoring
-- [ ] Payments
-  - [ ] Paypal
-  - [ ] anonymous, not stripe
-  - [ ] Apple, Google, Amazon, etc
-- [ ] Hash'n'Cache assets
+- [x] Completed
+  - [x] Ability to show encryption key
+  - [x] Update items
+  - [x] NOT update items that are older than lastSyncUpdate
+  - [x] Draft versioning (local?)
+  - [x] General refactoring
+  - [x] can't save encryption key when none is present
+  - [x] shouldn't complain about invalid non-key
+  - [x] update UI when syncing posts
+  - [x] don't sync Empty / Untitled
+- [ ] Release 1
+  - [ ] Out-of-Sync Indicator (`updated > synced_at`)
+  - [ ] Manual Sync Button
+  - [ ] Count items & bytes
+  - [ ] Paywall
+  - [ ] Deleted things marked as null
+  - [ ] Deleted things don't count against quotas
+- [ ] Future
+  - [ ] re-key library
+  - [ ] Fine-tuned refactoring
+  - [ ] Payments
+    - [ ] Paypal
+    - [ ] anonymous, not stripe
+    - [ ] Apple, Google, Amazon, etc
+  - [ ] Hash'n'Cache assets
