@@ -151,27 +151,18 @@
   let Post = window.Post;
 
   async function decryptPost(key, item) {
-    let data;
-    try {
-      // because this is double stringified (for now)
-      data = JSON.parse(item.data);
-    } catch (e) {
-      e.data = item.data;
-      throw e;
-    }
+    let data = item.data;
 
-    // TODO decide which key to use (once we have shared projects)
-    let syncedPost;
-    try {
-      syncedPost = await Encraption.decrypt64(data.encrypted, key);
-    } catch (e) {
-      e.data = data;
-      throw e;
-    }
+    let syncedPost = await Encraption.decrypt64(data.encrypted, key).catch(
+      function (err) {
+        err.data = data;
+        throw err;
+      }
+    );
     return syncedPost;
   }
 
-  async function docCreate(token, key, post) {
+  async function docCreate(token) {
     let resp = await window.fetch(baseUrl + "/api/user/doc", {
       method: "POST",
       headers: {
@@ -179,12 +170,14 @@
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        data: JSON.stringify({
-          encrypted: await Encraption.encryptObj(post, key),
-        }),
+        data: JSON.stringify({}),
       }),
     });
     let body = await resp.json();
+    if (!body.uuid || !new Date(body.updated_at).valueOf()) {
+      // TODO
+      throw new Error("Sync was not successful");
+    }
     return body;
   }
 
@@ -202,43 +195,47 @@
       }),
     });
     let body = await resp.json();
-    return body;
-  }
-
-  async function _syncPost(token, key, post, lastSyncUp2) {
-    // Note: syncHook MUST be called on posts in ascending `updated_at` order
-    // (otherwise drafts will be older than `lastSyncUp2` and be skipped / lost)
-    post._type = "post";
-
-    let resp;
-    if (!post.sync_id) {
-      resp = await docCreate(token, key, post);
-    } else if (
-      (new Date(post.updated).valueOf() || 0) > lastSyncUp2.valueOf()
-    ) {
-      resp = await docUpdate(token, key, post);
-    } else {
-      return lastSyncUp2;
-    }
-
-    if (!resp.uuid || !new Date(resp.updated_at).valueOf()) {
+    if (!body.uuid || !new Date(body.updated_at).valueOf()) {
       // TODO
       throw new Error("Sync was not successful");
     }
+    return body;
+  }
 
-    // Don't do this. Keep local `updated` for local sync logic
-    //post.updated = resp.updated_at.toISOString();
+  async function _syncPost(token, key2048, post, _lastSyncUp) {
+    post._type = "post";
+
+    // Note: syncHook MUST be called on posts in ascending `updated_at` order
+    // (otherwise drafts will be older than `_lastSyncUp` and be skipped / lost)
+    let postUpdatedAt = new Date(post.updated).valueOf() || 0;
+    if (postUpdatedAt < _lastSyncUp.valueOf()) {
+      return _lastSyncUp;
+    }
+
     if (!post.sync_id) {
-      post.sync_id = resp.uuid;
+      let item = await docCreate(token);
+      post.sync_id = item.uuid;
       PostModel.save(post);
     }
 
-    // double parse to ensure a valid date
-    let _lastSyncUp2 = new Date(new Date(post.updated).valueOf() || 0);
-    if (_lastSyncUp2.valueOf() > lastSyncUp2.valueOf()) {
-      lastSyncUp2 = _lastSyncUp2;
+    let buf512 = await Passphrase.pbkdf2(key2048, post.sync_id);
+    let buf128 = buf512.slice(0, 16);
+    let key = await Encraption.importKeyBytes(buf128).catch(showError);
+
+    // Note: We intentionally don't use the remote's `updated_at`.
+    // We keep local `updated` for local sync logic
+    // Example (of what not to do): post.updated = resp.updated_at.toISOString();
+
+    await docUpdate(token, key, post);
+
+    // double parse to ensure a valid date (i.e. NaN => 0)
+    let updatedAt = new Date(new Date(post.updated).valueOf() || 0);
+    if (!updatedAt) {
+      console.warn("bad `updated` date:", post);
+      return _lastSyncUp;
     }
-    return lastSyncUp2;
+
+    return updatedAt;
   }
 
   function showError(err) {
@@ -273,7 +270,7 @@ Enjoy! 🥳`,
     if (key64) {
       keyBytes = Encoding.base64ToBuffer(key64);
       key2048 = await Passphrase.encode(keyBytes);
-      key = await Encraption.importKey(key64).catch(showError);
+      key = await Encraption.importKey64(key64).catch(showError);
     }
 
     // double parsing date to guarantee a valid date or the zero date
@@ -291,7 +288,7 @@ Enjoy! 🥳`,
         // TODO don't save empty posts at all
         return;
       }
-      lastSyncUp = await _syncPost(token, key, post, lastSyncUp);
+      lastSyncUp = await _syncPost(token, key2048, post, lastSyncUp);
       localStorage.setItem("bliss:last-sync-up", lastSyncUp.toISOString());
     };
 
@@ -315,7 +312,7 @@ Enjoy! 🥳`,
         keyBytes = crypto.getRandomValues(new Uint8Array(16));
         key64 = Encoding.bufferToBase64(keyBytes);
         key2048 = await Passphrase.encode(keyBytes);
-        key = await Encraption.importKey(key64);
+        key = await Encraption.importKey64(key64);
         localStorage.setItem("bliss:enc-key", key64);
       }
 
@@ -339,7 +336,7 @@ Enjoy! 🥳`,
           continue;
         }
         key64 = Encoding.bufferToBase64(keyBytes); // can't fail
-        key = await Encraption.importKey(key64).catch(showError);
+        key = await Encraption.importKey64(key64).catch(showError);
         if (!key) {
           continue;
         }
@@ -361,7 +358,21 @@ Enjoy! 🥳`,
     await items.reduce(async function (promise, item) {
       await promise;
 
-      let syncedPost = await decryptPost(key, item).catch(function (e) {
+      try {
+        // because this is double stringified (for now)
+        item.data = JSON.parse(item.data);
+      } catch (e) {
+        e.data = item.data;
+        console.warn(e);
+        return;
+      }
+
+      // TODO decide how to keyshare so that we can have shared projects
+      let buf512 = await Passphrase.pbkdf2(key2048, item.uuid);
+      let buf128 = buf512.slice(0, 16);
+
+      let postKey = await Encraption.importKeyBytes(buf128);
+      let syncedPost = await decryptPost(postKey, item).catch(function (e) {
         console.warn("Could not parse or decrypt:");
         console.warn(item.data);
         console.warn(e);

@@ -5,20 +5,27 @@ var Encraption = {};
 
   let Encoding = window.Encoding;
 
-  Encraption.importKey = async function importKey(key64) {
+  Encraption.importKeyBytes = async function importKey(keyU8) {
     let crypto = window.crypto;
     let usages = ["encrypt", "decrypt"];
     let extractable = false;
-    let rawKey = Encoding.base64ToBuffer(key64);
 
     return await crypto.subtle.importKey(
       "raw",
-      rawKey,
+      keyU8,
       { name: "AES-CBC" },
       extractable,
       usages
     );
   };
+
+  Encraption.importKey = async function importKey(key64) {
+    let rawKey = Encoding.base64ToBuffer(key64);
+    let key = await Encraption.importKeyBytes(rawKey);
+    return key;
+  };
+
+  Encraption.importKey64 = Encraption.importKey;
 
   Encraption.encryptObj = async function encryptObj(obj, key) {
     var crypto = window.crypto;
