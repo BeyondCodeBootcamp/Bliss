@@ -208,7 +208,7 @@
     // Note: syncHook MUST be called on posts in ascending `updated_at` order
     // (otherwise drafts will be older than `_lastSyncUp` and be skipped / lost)
     let postUpdatedAt = new Date(post.updated).valueOf() || 0;
-    if (postUpdatedAt < _lastSyncUp.valueOf()) {
+    if (postUpdatedAt <= _lastSyncUp.valueOf()) {
       return _lastSyncUp;
     }
 
@@ -247,6 +247,7 @@
     let howToSyncTemplate = {
       title: "🎉🔥🚀 NEW! How to Sync Drafts",
       description: "Congrats! Now you can sync drafts between computers!",
+      //updated: new Date(0).toISOString(),
       content: `Bliss uses secure local encryption for syncing drafts.
 
 (you're probably not a weirdo, but if you are, we don't even want to be able to find out 😉)
@@ -316,7 +317,13 @@ Enjoy! 🥳`,
         localStorage.setItem("bliss:enc-key", key64);
       }
 
-      await PostModel._syncHook(PostModel.normalize(howToSyncTemplate));
+      // calling _syncPost directly as to not update sync date
+      await _syncPost(
+        token,
+        key2048,
+        PostModel.normalize(howToSyncTemplate),
+        new Date(0)
+      );
       // shouldn't be possible to be called thrice but...
       // just in case...
       if (!_cannotReDo) {
