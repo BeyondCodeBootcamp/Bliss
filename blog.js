@@ -108,6 +108,14 @@ var BlogModel = {};
     ev.preventDefault();
     ev.stopPropagation();
 
+    // delete old untitled drafts
+    PostModel.ids().forEach(function (id) {
+      let post = PostModel.get(id);
+      if (!post.title) {
+        PostModel.delete(post.uuid);
+      }
+    });
+    // create new untitled draft
     Post._deserialize(PostModel.create().uuid);
     Post._renderRows();
   };
@@ -142,8 +150,7 @@ var BlogModel = {};
     post.title = PostModel._parseTitle(text);
     if (!post.title) {
       console.log("remove (or just skip saving) empty doc");
-      localStorage.removeItem(`post.${post.uuid}.meta`);
-      localStorage.removeItem(`post.${post.uuid}.data`);
+      PostModel.delete(post.uuid);
       return;
     }
 
@@ -208,7 +215,6 @@ var BlogModel = {};
       post._previous.title !== post.title ||
       post._previous._synced !== synced
     ) {
-      console.log("[DEBUG] firing the update mechanism");
       var cell = $('input[name="uuid"][value="' + post.uuid + '"]');
       var row = cell.closest("tr");
       row.outerHTML = Post._renderRow(post);
@@ -529,7 +535,7 @@ var BlogModel = {};
     };
     var pathname = (Post._systems[blog.blog] || Post._systems.hugo).pathname;
     if (!Post._systems[blog.blog]) {
-      console.warn(
+      console.debug(
         "Warning: blog system not specified or unsupported, assuming hugo",
         blog.blog
       );
@@ -581,7 +587,7 @@ var BlogModel = {};
         break;
       default:
         // TODO log error
-        console.warn(
+        console.debug(
           "Warning: blog.githost was not specified or unsupported, assuming github",
           blog.githost
         );
@@ -788,8 +794,8 @@ var BlogModel = {};
   };
 
   PostModel.delete = function (uuid) {
-    localStorage.removeItem("post." + uuid + ".meta");
-    localStorage.removeItem("post." + uuid + ".content");
+    localStorage.removeItem(`post.${uuid}.meta`);
+    localStorage.removeItem(`post.${uuid}.data`);
   };
 
   PostModel._getRandomValues = function (arr) {
