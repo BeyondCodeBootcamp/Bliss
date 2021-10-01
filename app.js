@@ -63,7 +63,7 @@ var Settings = {};
 (async function () {
   "use strict";
 
-    let $ = window.$;
+  let $ = window.$;
   let Tab = window.Tab;
   let PostModel = window.PostModel;
   let Post = window.Post;

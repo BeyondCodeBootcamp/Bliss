@@ -79,10 +79,10 @@
         <ul>
           <li><a class="js-tab-post active" data-href="#post">Post</a></li>
           <li><a class="js-tab-settings" data-href="#settings">Settings</a></li>
-          <li class="js-sign-in-github">
+          <li class="js-guest js-sign-in-github">
             <a class="js-github-oauth2-url">GitHub Sign In</a>
           </li>
-          <li class="js-logout" hidden>
+          <li class="js-authenticated js-logout" hidden>
             <small><button>Logout</button></small>
           </li>
         </ul>
@@ -134,6 +134,10 @@
             </tr>
           </tbody>
         </table>
+      </section>
+      <br class="js-authenticated" hidden />
+      <section class="js-authenticated" hidden>
+        <button class="js-sync">Sync</button>
       </section>
       <br />
       <section>
@@ -331,6 +335,7 @@ Best kept 50 - 155 characters."
     </footer>
     <script src="./env.js"></script>
     <script src="./ajquery.js"></script>
+    <script src="./debouncer.js"></script>
     <script src="./blog.js"></script>
     <script src="./encoding.js"></script>
     <!-- script src="./settings.js"></script -->
