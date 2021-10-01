@@ -11,14 +11,19 @@ What's left?
   - [x] update UI when syncing posts
   - [x] don't sync Empty / Untitled
 - [ ] Release 1
-  - [ ] Out-of-Sync Indicator (`updated > synced_at`)
-  - [ ] Manual Sync Button
-  - [ ] Count items & bytes
+  - [x] Per-Post AES Keys
+  - [x] Out-of-Sync Indicator (`updated > synced_at`)
+  - [x] Manual Sync Button
+  - [x] Count items & bytes
+  - [ ] BUG: summaries `> summary of thing` are being eaten
+  - [ ] What to do when the current draft is out of date? (reload indicator?)
   - [ ] Paywall
   - [ ] Deleted things marked as null
   - [ ] Deleted things don't count against quotas
 - [ ] Future
+  - [ ] Don't save multiple Untitled
   - [ ] re-key library
+  - [ ] Per-Post AES Keys
   - [ ] Fine-tuned refactoring
   - [ ] Payments
     - [ ] Paypal
