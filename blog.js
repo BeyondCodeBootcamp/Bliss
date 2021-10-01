@@ -140,6 +140,12 @@ var BlogModel = {};
     var text = $('textarea[name="content"]').value.trim();
     var inputDescription = $('textarea[name="description"]').value;
     post.title = PostModel._parseTitle(text);
+    if (!post.title) {
+      console.log("remove (or just skip saving) empty doc");
+      localStorage.removeItem(`post.${post.uuid}.meta`);
+      localStorage.removeItem(`post.${post.uuid}.data`);
+      return;
+    }
 
     // skip the first line of text (which was the title)
     var lines = text.split(/[\r\n]/g);
@@ -197,11 +203,17 @@ var BlogModel = {};
   };
   Post._update = function (post) {
     Post._serialize(post);
-    if (post._previous.title !== post.title) {
+    let synced = post.sync_version === post.updated;
+    if (
+      post._previous.title !== post.title ||
+      post._previous._synced !== synced
+    ) {
+      console.log("[DEBUG] firing the update mechanism");
       var cell = $('input[name="uuid"][value="' + post.uuid + '"]');
       var row = cell.closest("tr");
       row.outerHTML = Post._renderRow(post);
       post._previous.title = post.title;
+      post._previous._synced = synced;
     }
     Post._rawPreview(post);
   };
@@ -289,11 +301,16 @@ var BlogModel = {};
   };
 
   Post._renderRow = function (post) {
+    let needsUpdate = "";
+    if (post.sync_version && post.sync_version !== post.updated) {
+      needsUpdate = "⚠️ 🔄<br>";
+    }
     var tmpl = Post._rowTmpl
       .replace(/ hidden/g, "")
       .replace(
         "{{title}}",
-        post.title.slice(0, 50).replace(/</g, "&lt;") || "<i>Untitled</i>"
+        needsUpdate + post.title.slice(0, 50).replace(/</g, "&lt;") ||
+          "<i>Untitled</i>"
       )
       .replace("{{uuid}}", post.uuid)
       .replace(
@@ -676,11 +693,9 @@ var BlogModel = {};
    * @returns {BlissPost}
    */
   PostModel.getOrCreate = function (uuid) {
-    var post = PostModel.get(uuid) || {};
+    var post = PostModel.get(uuid) || { content: "" };
     post.uuid = uuid;
 
-    // Content
-    post.content = localStorage.getItem("post." + post.uuid + ".data") || "";
     if (!post.description) {
       post.description = PostModel._parseDescription(post);
     }
@@ -692,7 +707,10 @@ var BlogModel = {};
     post = PostModel.normalize(post);
 
     // TODO is there a better way to handle this?
-    post._previous = { title: post.title };
+    post._previous = {
+      title: post.title,
+      _synced: post.sync_version === post.updated,
+    };
 
     // Blog
     // TODO post.blog_id
@@ -712,11 +730,16 @@ var BlogModel = {};
    * @returns {BlissPost?}
    */
   PostModel.get = function (uuid) {
+    // Meta
     let json = localStorage.getItem("post." + uuid + ".meta");
     if (!json) {
       return null;
     }
-    return JSON.parse(json);
+    let post = JSON.parse(json);
+
+    // Content
+    post.content = localStorage.getItem("post." + post.uuid + ".data") || "";
+    return post;
   };
 
   PostModel.ids = function () {
@@ -757,6 +780,7 @@ var BlogModel = {};
 
         // for syncing
         sync_id: post.sync_id,
+        sync_version: post.sync_version,
       })
     );
     localStorage.setItem("post." + post.uuid + ".data" + version, post.content);
