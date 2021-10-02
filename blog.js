@@ -211,6 +211,7 @@ var BlogModel = {};
   Post._update = function (post) {
     Post._serialize(post);
     let synced = post.sync_version === post.updated;
+    // TODO fails to update under certain conditions
     if (
       post._previous.title !== post.title ||
       post._previous._synced !== synced
@@ -257,13 +258,19 @@ var BlogModel = {};
 
     //$('input[name="title"]').value = post.title;
     //$('input[name="created"]').value = PostModel._toInputDatetimeLocal(post.created);
-    if (post.title || post.content) {
-      $('textarea[name="content"]').value =
-        "# " + (post.title || "Untitled") + "\n\n" + post.content;
-    } else {
-      $('textarea[name="content"]').value = "";
+    let title = (post.title || "").trim() || "Untitled";
+    let emptyContent = "Fascinating Markdown content goes here...";
+    let emptyDesc = "Meta-description summary goes here";
+    let desc = (post.description || "").trim() || emptyDesc;
+    let content = (post.content || "").trim() || emptyContent;
+    if (desc.trim() === emptyContent) {
+      desc = emptyDesc;
     }
-    $('textarea[name="description"]').value = post.description || "";
+    // TODO what about when desc.length matches content[0..desc.length]
+    $('textarea[name="content"]').value = `# ${title}\n\n`;
+    $('textarea[name="content"]').value += `> ${desc}\n\n`;
+    $('textarea[name="content"]').value += `${content}\n`;
+    $('textarea[name="description"]').value = desc;
     $(".js-undelete").hidden = true;
 
     Post._rawPreview(post);
@@ -311,13 +318,13 @@ var BlogModel = {};
     if (post.sync_version && post.sync_version !== post.updated) {
       needsUpdate = "⚠️ 🔄<br>";
     }
+    let title = post.title.slice(0, 50).replace(/</g, "&lt;");
+    if (!title || "Untitled" === title) {
+      title = "<i>Untitled</i>";
+    }
     var tmpl = Post._rowTmpl
       .replace(/ hidden/g, "")
-      .replace(
-        "{{title}}",
-        needsUpdate + post.title.slice(0, 50).replace(/</g, "&lt;") ||
-          "<i>Untitled</i>"
-      )
+      .replace("{{title}}", needsUpdate + title)
       .replace("{{uuid}}", post.uuid)
       .replace(
         "{{created}}",
