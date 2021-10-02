@@ -323,6 +323,35 @@ Best kept 50 - 155 characters."
           </label>
         </form>
       </section>
+      <br />
+      <section class="js-usage">
+        <form>
+          <header><h2>Stats & Usage Tier</h2></header>
+          <label
+            ># of Documents:
+            <input name="total-count" type="text" disabled value="0 of 50" />
+          </label>
+          <label
+            >Document Size Limit:
+            <input type="text" disabled value="32kb (per-document)" />
+          </label>
+          <label
+            >Total Size (in bytes):
+            <input name="total-size" type="text" disabled value="0 of 500kb" />
+          </label>
+          <label>
+            <button disabled>Upgrade (coming soon)</button>
+          </label>
+          <small
+            >Go "Pro" and get up to 50mb of storage for documents up to 200kb
+            each, and 5,000 syncs per month.</small
+          >
+          <!-- label
+            ># of Syncs (or bandwidth):
+            <input type="text" disabled />
+          </label -->
+        </form>
+      </section>
     </main>
     <footer>
       <hr />
@@ -341,6 +370,7 @@ Best kept 50 - 155 characters."
     <!-- script src="./settings.js"></script -->
     <script src="./tabs.js"></script>
     <script src="./passphrase.js"></script>
+    <script src="./settings.js"></script>
     <script src="./app.js"></script>
     <script src="./auth3000.js"></script>
     <script src="./encraption.js"></script>
