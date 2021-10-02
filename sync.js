@@ -17,6 +17,7 @@ var Sync = {};
   let Encoding = window.Encoding;
   let Encraption = window.Encraption;
   let Debouncer = window.Debouncer;
+  let Settings = window.Settings;
   let Session = {
     getToken: async function () {
       return Session._token;
@@ -120,7 +121,7 @@ var Sync = {};
         })
         .catch(die);
       let result = await resp.json().catch(die);
-      console.log(result);
+      console.log('logout result:', result);
       window.alert("Logged out!");
       init();
     });
@@ -379,7 +380,9 @@ var Sync = {};
     // We keep local `updated` for local sync logic
     // Example (of what not to do): post.updated = resp.updated_at.toISOString();
 
-    await docUpdate(token, postKey, post);
+    let usage = await docUpdate(token, postKey, post);
+    Settings.setUsage(usage);
+
     post.sync_version = post.updated;
     PostModel.save(post);
   }
@@ -456,10 +459,11 @@ var Sync = {};
         },
       })
       .catch(die);
-    let items = await resp.json().catch(die);
+    let usage = await resp.json().catch(die);
+    Settings.setUsage(usage);
 
-    //console.debug("Items:");
-    //console.debug(items);
+    //console.debug("Docs:");
+    //console.debug(docs);
 
     // Use MEGA-style https://site.com/invite#priv ?
     // hash(priv) => pub
@@ -471,7 +475,7 @@ var Sync = {};
     });
 
     // We should always have at least the "How to Sync Drafts" post
-    if (0 === lastSyncDown.valueOf() && !items.length) {
+    if (0 === lastSyncDown.valueOf() && !usage.docs.length) {
       // this is a new account on its first computer
       // gen 128-bit key
       if (!key2048) {
@@ -495,17 +499,17 @@ var Sync = {};
       key2048 = await askForKey2048();
     }
 
-    await updateLocal(items);
+    await updateLocal(usage.docs);
 
     // TODO make public or make... different
     Post._renderRows();
   }
 
-  async function updateLocal(items) {
+  async function updateLocal(docs) {
     let lastSyncDown = getLastDown();
 
     // poor man's forEachAsync
-    await items.reduce(async function (promise, item) {
+    await docs.reduce(async function (promise, item) {
       await promise;
 
       try {
@@ -565,7 +569,7 @@ var Sync = {};
       }
 
       if (remoteUpdated === localUpdated && syncedVersion === localUpdated) {
-        // unlikely condition, but... don't resave items that haven't changed
+        // unlikely condition, but... don't resave docs that haven't changed
         return;
       }
 
