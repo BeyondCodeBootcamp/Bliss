@@ -142,7 +142,7 @@ var Sync = {};
     //console.debug("Refresh Token: (may be empty)");
     //console.debug(result);
 
-    if (result.id_token || result.access_token) {
+    if (result?.id_token || result?.access_token) {
       await doStuffWithUser(result).catch(die);
       return;
     }
