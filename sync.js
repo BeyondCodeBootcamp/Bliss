@@ -121,7 +121,7 @@ var Sync = {};
         })
         .catch(die);
       let result = await resp.json().catch(die);
-      console.log('logout result:', result);
+      console.log("logout result:", result);
       window.alert("Logged out!");
       init();
     });
@@ -191,13 +191,12 @@ var Sync = {};
         console.warn(err);
       });
       */
+      window.document.removeEventListener("visibilitychange", doSync);
 
       return ev.returnValue;
     };
 
-    window.addEventListener("beforeunload", Session._beforeunload);
-    //window.addEventListener("unload", Session._beforeunload);
-    window.document.addEventListener("visibilitychange", async function () {
+    async function doSync() {
       // fires when user switches tabs, apps, goes to homescreen, etc.
       if ("hidden" !== document.visibilityState) {
         return;
@@ -209,7 +208,11 @@ var Sync = {};
           console.warn("Error during sync down on 'visibilitychange'");
           console.warn(err);
         });
-    });
+    }
+
+    window.addEventListener("beforeunload", Session._beforeunload);
+    //window.addEventListener("unload", Session._beforeunload);
+    window.document.addEventListener("visibilitychange", doSync);
 
     Session._syncTimer = setInterval(async function () {
       console.log("[DEBUG] Interval is working");
