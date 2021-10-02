@@ -3,6 +3,9 @@ var Tab = {};
 (function () {
   "use strict";
 
+  let $ = window.$;
+  let $$ = window.$$;
+
   Tab._init = function () {
     window.addEventListener("hashchange", Tab._hashChange, false);
     if ("" !== location.hash.slice(1)) {
@@ -26,7 +29,10 @@ var Tab = {};
       return;
     }
     if (!$$(`[data-ui="${name}"]`).length) {
-      console.warn("something else took over the hash routing:", name);
+      console.warn(
+        "something else took over the hash routing:",
+        name.slice(0, 10) + "..."
+      );
       return;
     }
 
