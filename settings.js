@@ -28,6 +28,20 @@ var Settings = {};
     return n.toFixed(1) + units[unit];
   }
 
+  Settings.setSubscribe = function (ev) {
+    let name = ev.target.name;
+    let value = ev.target
+      .closest("form")
+      .querySelector(`[name="${name}"][type="radio"]:checked`).value;
+    if ("subscribe" === value) {
+      $("[data-checkout]").href =
+        "/api/redirects/paypal-checkout/subscribe/bliss-pro-yearly";
+    } else {
+      $("[data-checkout]").href =
+        "/api/redirects/paypal-checkout/order/bliss-pro-yearly";
+    }
+  };
+
   Settings.setUsage = function (usage) {
     let $totalSize = $('.js-usage [name="total-size"]');
     let totalSize = fromBytes(usage.total_size) || 0;

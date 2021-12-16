@@ -1,6 +1,8 @@
 var Auth3000 = {};
 
 (async function () {
+  "use strict";
+
   Auth3000._querystringify = function (options) {
     return Object.keys(options)
       .filter(function (key) {

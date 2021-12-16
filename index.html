@@ -28,8 +28,6 @@
     <link rel="manifest" href="/my.webmanifest">
     <meta name="theme-color" content="#FF00FF">
     -->
-    <script src="https://unpkg.com/ajquery@2.1/ajquery.min.js"></script>
-    <script src="https://unpkg.com/xtz@1.0/xtz.min.js"></script>
     <style>
       * {
         box-sizing: border-box;
@@ -78,7 +76,9 @@
         <h1>Bliss: Blog, Easy As Gist</h1>
         <ul>
           <li><a class="js-tab-post active" data-href="#post">Post</a></li>
-          <li><a class="js-tab-settings" data-href="#settings">Settings</a></li>
+          <li x-class="js-authenticated" x-hidden>
+            <a class="js-tab-settings" data-href="#settings">Settings</a>
+          </li>
           <li class="js-guest js-sign-in-github">
             <a class="js-github-oauth2-url">GitHub Sign In</a>
           </li>
@@ -325,7 +325,7 @@ Best kept 50 - 155 characters."
       </section>
       <br />
       <section class="js-usage">
-        <form>
+        <form onsubmit="CC.pay(window.event)">
           <header><h2>Stats & Usage Tier</h2></header>
           <label
             ># of Documents:
@@ -339,9 +339,116 @@ Best kept 50 - 155 characters."
             >Total Size (in bytes):
             <input name="total-size" type="text" disabled value="0 of 500kb" />
           </label>
-          <label>
-            <button disabled>Upgrade (coming soon)</button>
-          </label>
+          <!--label>
+            <button>Upgrade (coming soon)</button>
+          </label-->
+          <h2>Upgrade</h2>
+          Just $10 per <em>year</em>!
+          <br />
+          (that's less than $1 per month!)
+          <br />
+          <label
+            ><input
+              type="radio"
+              name="plan"
+              value="order"
+              onchange="Settings.setSubscribe(event);"
+            />
+            One-Time</label
+          >
+          <br />
+          <label
+            ><input
+              type="radio"
+              name="plan"
+              value="subscribe"
+              checked
+              onchange="Settings.setSubscribe(event);"
+            />
+            Subscribe</label
+          >
+          <br />
+          <!-- TODO use BASE_URL -->
+          <a
+            data-checkout
+            href="/api/redirects/paypal-checkout/subscribe/bliss-pro-yearly"
+            ><img
+              src="https://www.paypalobjects.com/webstatic/en_US/i/buttons/checkout-logo-large.png"
+              alt="Check out with PayPal"
+          /></a>
+          <hr />
+          <label
+            >Name on Card:
+            <br />
+            <input
+              name="cc-name"
+              type="text"
+              placeholder="ex: John Smith"
+              value="John Doe"
+              required
+          /></label>
+          <!--
+          <label>Email:<br />-->
+          <input
+            name="cc-email"
+            style="display: inline"
+            x-type="text"
+            type="hidden"
+            placeholder="ex: john.doe@example.com"
+            x-required
+          /><!-- /label -->
+          <label
+            >Credit Card Number:
+            <br />
+            <input
+              name="cc-digits"
+              type="text"
+              placeholder="ex: 4242-4242-4242-4242"
+              value="4032-0320-4513-2484"
+              onkeyup="CC.formatCardDigits(window.event)"
+              required
+          /></label>
+          <label style="display: inline"
+            >Expiration (MM/YYYY):
+            <br />
+            <input
+              style="display: inline"
+              name="cc-mm"
+              value="10"
+              type="number"
+              min="1"
+              max="12"
+              step="1"
+              placeholder="mm"
+              required />/<input
+              style="display: inline"
+              name="cc-yyyy"
+              value="2026"
+              type="number"
+              min="2021"
+              max="2099"
+              step="1"
+              type="number"
+              placeholder="yyyy"
+              required
+          /></label>
+          <br />
+          <label style="display: inline"
+            >Security Code (CVV):
+            <br />
+            <input
+              style="display: inline"
+              name="cc-code"
+              value="777"
+              type="number"
+              min="1"
+              max="9999"
+              step="1"
+              placeholder="000"
+              required
+          /></label>
+          <label><button type="submit">Pay Now</button></label>
+          <br />
           <small
             >Go "Pro" and get up to 50mb of storage for documents up to 200kb
             each, and 5,000 syncs per month.</small
@@ -362,18 +469,26 @@ Best kept 50 - 155 characters."
         >
       </p>
     </footer>
-    <script src="./env.js"></script>
-    <script src="./ajquery.js"></script>
+    <!-- DEV -->
+    <!-- all deps -->
+    <script src="./deps/ajquery.js"></script>
+    <script src="./deps/xtz.js"></script>
     <script src="./deps/debouncer.js"></script>
-    <script src="./blog.js"></script>
-    <script src="./encoding.js"></script>
-    <!-- script src="./settings.js"></script -->
-    <script src="./tabs.js"></script>
     <script src="./deps/passphrase.js"></script>
-    <script src="./settings.js"></script>
-    <script src="./app.js"></script>
-    <script src="./auth3000.js"></script>
+    <script src="./encoding.js"></script>
     <script src="./encraption.js"></script>
+    <!-- main app + nav -->
+    <script src="./env.js"></script>
+    <script src="./blog.js"></script>
+    <script src="./tabs.js"></script>
+    <script src="./settings.js"></script>
+    <!-- exports CC -->
+    <script src="./pay-with-credit-card.js"></script>
+    <script src="./app.js"></script>
+    <!-- auth + sync -->
+    <script src="./auth3000.js"></script>
     <script src="./sync.js"></script>
+    <!-- /DEV -->
+    <!-- PROD/ -->
   </body>
 </html>

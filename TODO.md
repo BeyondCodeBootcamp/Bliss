@@ -1,3 +1,7 @@
+Next?
+
+- [ ] Build Script
+
 What's left?
 
 - [x] Completed
@@ -15,18 +19,17 @@ What's left?
   - [x] Out-of-Sync Indicator (`updated > synced_at`)
   - [x] Manual Sync Button
   - [x] Count items & bytes
-  - [ ] BUG: summaries `> summary of thing` are being eaten
+  - [x] BUG: summaries `> summary of thing` are being eaten
   - [ ] What to do when the current draft is out of date? (reload indicator?)
+- [ ] Release 2
   - [ ] Paywall
   - [ ] Deleted things marked as null
   - [ ] Deleted things don't count against quotas
 - [ ] Future
-  - [ ] Don't save multiple Untitled
   - [ ] re-key library
-  - [ ] Per-Post AES Keys
   - [ ] Fine-tuned refactoring
   - [ ] Payments
     - [ ] Paypal
-    - [ ] anonymous, not stripe
+    - [ ] NMI anonymous, not stripe
     - [ ] Apple, Google, Amazon, etc
-  - [ ] Hash'n'Cache assets
+  - [ ] Hash'n'Cache / bundle assets (Service Workers?)
