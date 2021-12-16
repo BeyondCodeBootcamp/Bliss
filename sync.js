@@ -22,8 +22,12 @@ var Sync = {};
     getToken: async function () {
       return Session._token;
     },
+    _getToken: function (token) {
+      return localStorage.getItem("bliss.session");
+    },
     _setToken: function (token) {
       Session._token = token;
+      localStorage.setItem("bliss.session", token);
     },
   };
 
@@ -40,13 +44,45 @@ var Sync = {};
   }
 
   async function attemptRefresh() {
-    let resp = await window
-      .fetch(baseUrl + "/api/authn/refresh", { method: "POST" })
-      .catch(noop);
-    if (!resp) {
-      return;
+    let reqs = [];
+    let idToken = Session._getToken();
+    // TODO skip if token is known to be expired
+    if (idToken) {
+      reqs.push(
+        window
+          .fetch(baseUrl + "/api/authn/exchange", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${idToken}` },
+          })
+          .catch(noop)
+      );
     }
-    return await resp.json().catch(die);
+
+    // TODO skip if origins are not the same (3rd party cookies are dead)
+    reqs.push(
+      window
+        .fetch(baseUrl + "/api/authn/refresh", { method: "POST" })
+        .catch(noop)
+    );
+
+    let resps = await Promise.all(reqs);
+    resps = resps.filter(Boolean);
+    let results = await Promise.all(
+      resps.map(async function (resp) {
+        let body = await resp.json().catch(die);
+        if (body.id_token) {
+          return body;
+        }
+        if (body.access_token) {
+          if (idToken) {
+            return { id_token: idToken };
+          }
+          return body;
+        }
+        return null;
+      })
+    );
+    return results.filter(Boolean).pop();
   }
 
   async function completeOauth2SignIn(baseUrl, query) {
