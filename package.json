@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@root/passphrase": "^1.1.0"
+  },
+  "devDependencies": {
+    "dotenv": "^10.0.0"
+  }
+}
