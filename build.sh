@@ -7,6 +7,7 @@ set -x
 # script dependencies
 # webi sd
 
+# TODO mvp.css
 curl -fsSL https://unpkg.com/ajquery/ajquery.js -o deps/ajquery.js
 curl -fsSL https://unpkg.com/xtz/xtz.js -o deps/xtz.js
 curl -fsSL https://unpkg.com/@root/debounce -o deps/debouncer.js
