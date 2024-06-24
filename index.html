@@ -28,9 +28,10 @@
     <link rel="manifest" href="/my.webmanifest">
     <meta name="theme-color" content="#FF00FF">
     -->
-    <script src="https://unpkg.com/ajquery@2.1/ajquery.min.js"></script>
-    <script src="https://unpkg.com/xtz@1.0/xtz.min.js"></script>
     <style>
+      * {
+        box-sizing: border-box;
+      }
       nav {
         margin-bottom: 0.8rem;
       }
@@ -41,11 +42,26 @@
       main {
         padding-top: 0;
       }
+      form {
+        width: 100%;
+      }
+      textarea {
+        width: 100%;
+      }
       fieldset {
         border-style: none;
       }
       fieldset label {
         display: inline-block;
+      }
+      small button {
+        font-size: smaller;
+        margin: 0;
+        padding: 0.25rem;
+      }
+      a.active {
+        text-decoration: none;
+        color: inherit;
       }
     </style>
   </head>
@@ -59,11 +75,15 @@
         </a>
         <h1>Bliss: Blog, Easy As Gist</h1>
         <ul>
-          <li>Post</li>
-          <li>
-            <a href="https://github.com/coolaj86/bliss/" target="_blank"
-              >GitHub ↗</a
-            >
+          <li><a class="js-tab-post active" data-href="#post">Post</a></li>
+          <li x-class="js-authenticated" x-hidden>
+            <a class="js-tab-settings" data-href="#settings">Settings</a>
+          </li>
+          <li class="js-guest js-sign-in-github">
+            <a class="js-github-oauth2-url">GitHub Sign In</a>
+          </li>
+          <li class="js-authenticated js-logout" hidden>
+            <small><button>Logout</button></small>
           </li>
         </ul>
       </nav>
@@ -79,7 +99,7 @@
         <br />
       </p>
     </header>
-    <main>
+    <main data-ui="post">
       <section>
         <!-- TODO grid flex list thing??  -->
         <table>
@@ -114,6 +134,10 @@
             </tr>
           </tbody>
         </table>
+      </section>
+      <br class="js-authenticated" hidden />
+      <section class="js-authenticated" hidden>
+        <button class="js-sync">Sync</button>
       </section>
       <br />
       <section>
@@ -275,6 +299,196 @@ Best kept 50 - 155 characters."
         </pre>
       </section>
     </main>
+    <main data-ui="settings">
+      <section>
+        <form>
+          <label
+            >Passphrase
+            <textarea
+              class="js-passphrase"
+              rows="4"
+              onchange="Settings.savePassphrase(event)"
+              onkeyup="Settings.savePassphrase(event)"
+            >
+[hidden]</textarea
+            >
+          </label>
+          <span class="js-hint" style="color: red"></span>
+          <label>
+            <small
+              ><button type="button" onclick="Settings.togglePassphrase(event)">
+                Show
+              </button></small
+            >
+          </label>
+        </form>
+      </section>
+      <br />
+      <section class="js-usage">
+        <form onsubmit="CC.pay(window.event)">
+          <header><h2>Stats & Usage Tier</h2></header>
+          <label
+            ># of Documents:
+            <input name="total-count" type="text" disabled value="0 of 50" />
+          </label>
+          <label
+            >Document Size Limit:
+            <input type="text" disabled value="32kb (per-document)" />
+          </label>
+          <label
+            >Total Size (in bytes):
+            <input name="total-size" type="text" disabled value="0 of 500kb" />
+          </label>
+          <!--label>
+            <button>Upgrade (coming soon)</button>
+          </label-->
+          <h2>Upgrade</h2>
+          Just $10 per <em>year</em>!
+          <br />
+          (that's less than $1 per month!)
+          <br />
+          <label
+            ><input
+              type="radio"
+              name="plan"
+              value="order"
+              onchange="Settings.setSubscribe(event);"
+            />
+            One-Time</label
+          >
+          <br />
+          <label
+            ><input
+              type="radio"
+              name="plan"
+              value="subscribe"
+              checked
+              onchange="Settings.setSubscribe(event);"
+            />
+            Subscribe</label
+          >
+          <br />
+          <!-- TODO use BASE_URL -->
+          <a
+            data-checkout
+            href="/api/redirects/paypal-checkout/subscribe/bliss-pro-yearly"
+            ><img
+              src="https://www.paypalobjects.com/webstatic/en_US/i/buttons/checkout-logo-large.png"
+              alt="Check out with PayPal"
+          /></a>
+          <hr />
+          <label
+            >Name on Card:
+            <br />
+            <input
+              name="cc-name"
+              type="text"
+              placeholder="ex: John Smith"
+              value="John Doe"
+              required
+          /></label>
+          <!--
+          <label>Email:<br />-->
+          <input
+            name="cc-email"
+            style="display: inline"
+            x-type="text"
+            type="hidden"
+            placeholder="ex: john.doe@example.com"
+            x-required
+          /><!-- /label -->
+          <label
+            >Credit Card Number:
+            <br />
+            <input
+              name="cc-digits"
+              type="text"
+              placeholder="ex: 4242-4242-4242-4242"
+              value="4032-0320-4513-2484"
+              onkeyup="CC.formatCardDigits(window.event)"
+              required
+          /></label>
+          <label style="display: inline"
+            >Expiration (MM/YYYY):
+            <br />
+            <input
+              style="display: inline"
+              name="cc-mm"
+              value="10"
+              type="number"
+              min="1"
+              max="12"
+              step="1"
+              placeholder="mm"
+              required />/<input
+              style="display: inline"
+              name="cc-yyyy"
+              value="2026"
+              type="number"
+              min="2021"
+              max="2099"
+              step="1"
+              type="number"
+              placeholder="yyyy"
+              required
+          /></label>
+          <br />
+          <label style="display: inline"
+            >Security Code (CVV):
+            <br />
+            <input
+              style="display: inline"
+              name="cc-code"
+              value="777"
+              type="number"
+              min="1"
+              max="9999"
+              step="1"
+              placeholder="000"
+              required
+          /></label>
+          <label><button type="submit">Pay Now</button></label>
+          <br />
+          <small
+            >Go "Pro" and get up to 50mb of storage for documents up to 200kb
+            each, and 5,000 syncs per month.</small
+          >
+          <!-- label
+            ># of Syncs (or bandwidth):
+            <input type="text" disabled />
+          </label -->
+        </form>
+      </section>
+    </main>
+    <footer>
+      <hr />
+      <p>
+        ©2021 Root |
+        <a href="https://github.com/coolaj86/bliss/" target="_blank"
+          >View Source ↗</a
+        >
+      </p>
+    </footer>
+    <!-- DEV -->
+    <!-- all deps -->
+    <script src="./deps/ajquery.js"></script>
+    <script src="./deps/xtz.js"></script>
+    <script src="./deps/debouncer.js"></script>
+    <script src="./deps/passphrase.js"></script>
+    <script src="./encoding.js"></script>
+    <script src="./encraption.js"></script>
+    <!-- main app + nav -->
+    <script src="./env.js"></script>
+    <script src="./blog.js"></script>
+    <script src="./tabs.js"></script>
+    <script src="./settings.js"></script>
+    <!-- exports CC -->
+    <script src="./pay-with-credit-card.js"></script>
     <script src="./app.js"></script>
+    <!-- auth + sync -->
+    <script src="./auth3000.js"></script>
+    <script src="./sync.js"></script>
+    <!-- /DEV -->
+    <!-- PROD/ -->
   </body>
 </html>
